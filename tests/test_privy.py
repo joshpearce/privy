@@ -123,3 +123,29 @@ def test_drawings_build(model, tmp_path):
     assert len(sheets) == 3
     for n, t, svg in sheets:
         assert svg.startswith("<svg") and len(svg) > 10000
+
+
+def test_inswing_door_clears_bench_and_fits_under_plate(model):
+    k = model.key
+    assert k["door_prehung"] and k["door_swing"] == "in"
+    titles = {c["title"]: c for c in model.checks}
+    assert titles["In-swing door clears bench when open 90 deg"]["ok"]
+    assert titles["Door header fits under sloped top plate"]["ok"]
+
+
+def test_service_pedestal_and_devices(model):
+    k = model.key
+    tags = {d["tag"] for d in k["electrical"]["devices"]}
+    assert {"MP", "DS", "S1", "S2", "R1", "R2", "L1", "L2"} <= tags
+    # the pedestal is site equipment: it must not move the building's bounding box
+    lo, hi = model.bbox()
+    assert lo[1] > k["service"]["y"]
+
+
+def test_standing_seam_panels_cover_roof(model):
+    k = model.key
+    panels = [p for p in model.parts if p.name == "Roofing panel"]
+    assert len(panels) == k["roof_sheets"]
+    xs = sorted((p.bbox()[0][0], p.bbox()[1][0]) for p in panels)
+    assert xs[0][0] == pytest.approx(k["roof_x"][0]) and xs[-1][1] == pytest.approx(k["roof_x"][1])
+    assert all(b[0] == pytest.approx(a[1]) for a, b in zip(xs, xs[1:]))

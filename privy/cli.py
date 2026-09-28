@@ -84,6 +84,29 @@ def cmd_build(a):
     return 1 if (fails and a.strict) else 0
 
 
+def fmt_json(v, ind=0, width=112):
+    """Compact, hand-editable JSON: short objects/arrays stay on one line."""
+    sp = "  " * ind
+    one = json.dumps(v, ensure_ascii=False)
+    if not isinstance(v, (dict, list)) or len(one) + len(sp) <= width:
+        return one
+    if isinstance(v, list):
+        return "[\n" + ",\n".join("  " * (ind + 1) + fmt_json(x, ind + 1) for x in v) + "\n" + sp + "]"
+    items = []
+    for k, x in v.items():
+        key = json.dumps(k) + ": "
+        items.append("  " * (ind + 1) + key + fmt_json(x, ind + 1, width - len(key)))
+    return "{\n" + ",\n".join(items) + "\n" + sp + "}"
+
+
+def cmd_fmt(a):
+    cfg = load(a.design)
+    with open(a.design, "w") as f:
+        f.write(fmt_json(cfg) + "\n")
+    print(f"formatted {a.design}")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="privy", description="Parametric privy: JSON -> SVG blueprints -> PDF")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -95,9 +118,13 @@ def main(argv=None):
     b.add_argument("--quality", type=float, default=1.0, help="render quality scale (0.3 = fast draft)")
     b.add_argument("--only", nargs="*", help="only these sheet numbers, e.g. A-101 A-301")
     b.add_argument("--strict", action="store_true", help="exit non-zero if any design check fails")
+    f_ = sub.add_parser("fmt", help="re-format the design JSON (compact, hand-editable)")
+    f_.add_argument("design", nargs="?", default="design/privy.json")
     a = ap.parse_args(argv)
     if a.cmd == "build":
         sys.exit(cmd_build(a))
+    if a.cmd == "fmt":
+        sys.exit(cmd_fmt(a))
 
 
 if __name__ == "__main__":

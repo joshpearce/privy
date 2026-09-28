@@ -27,8 +27,9 @@ def wrap(text, width, size, caps=False):
     return out
 
 
-def table(svg: S.SVG, x, y, cols, rows, title=None, size=0.072, rh=None, zebra=True, max_y=None):
-    """cols: [(header, width, align)] ; rows: list of lists of str.  Returns y below table."""
+def table(svg: S.SVG, x, y, cols, rows, title=None, size=0.072, rh=None, zebra=True, max_y=None, overflow=None):
+    """cols: [(header, width, align)] ; rows: list of lists of str.  Returns y below table.
+    Rows that do not fit above max_y are appended to `overflow` (if given) instead of being dropped."""
     rh = rh or size * 1.75
     t = svg.t
     W = sum(c[1] for c in cols)
@@ -52,7 +53,10 @@ def table(svg: S.SVG, x, y, cols, rows, title=None, size=0.072, rh=None, zebra=T
             nl = max(nl, len(ln))
         hh = rh + (nl - 1) * size * 1.2
         if max_y and y + hh > max_y:
-            svg.text(x, y + rh * 0.7, "(continued / truncated)", size, italic=True)
+            if overflow is not None:
+                overflow.extend(rows[i:])
+            svg.text(x, y + rh * 0.7, "(continued)" if overflow is not None else "(continued / truncated)", size,
+                     italic=True)
             return y + rh
         if zebra and i % 2 == 1:
             svg.rect(x, y, W, hh, fill=t["table"], stroke=False)
@@ -370,16 +374,41 @@ def sec_marker(s, v, a, b, letter, sheet, look):
         s.text(p[0], p[1] + 0.09, sheet, 0.055, "middle")
 
 
+def roof_text(m):
+    rf, k = m.cfg["roof"], m.key
+    if k.get("substrate", "purlins") == "purlins":
+        return f"{rf['roofing']['description']} on 2x4 purlins @ {fmt_in(L(rf['purlin_spacing']))} max"
+    return f"{rf['roofing']['description']}; {m.stock[rf['sheathing']].description} on the rafters"
+
+
+def door_text(m):
+    d = m.cfg["door"]
+    if m.key.get("door_prehung"):
+        return f"D1: {d['description']}. {d['hardware']}"
+    return "D1: 3-board Z-braced rough-sawn door, strap hinges, thumb latch"
+
+
+def swing_arc(s, v, hinge, open_end, closed_end):
+    """Door leaf (open, heavy) + dashed swing arc, all in plan model coords."""
+    ph, po, pc = v.P(*hinge), v.P(*open_end), v.P(*closed_end)
+    s.line(*ph, *po, lw="heavy")
+    r = math.hypot(po[0] - ph[0], po[1] - ph[1])
+    cross = (po[0] - ph[0]) * (pc[1] - ph[1]) - (po[1] - ph[1]) * (pc[0] - ph[0])
+    s.path(f"M{S.f(po[0])} {S.f(po[1])} A{S.f(r)} {S.f(r)} 0 0 {1 if cross > 0 else 0} {S.f(pc[0])} {S.f(pc[1])}",
+           lw="light", dash=(0.04, 0.03))
+
+
 # ============================================================================ view factories
 
 def elevation_view(m, side):
     return View(m, side, hidden=lambda p: "pipe" in p.tags)
 
 
-def plan_view(m):
+def plan_view(m, site=False):
     k = m.key
     zc = k["FF"] + L(m.cfg["drawings"].get("plan_cut_height", 60))
-    return View(m, "top", cut=(2, zc, 1), include=lambda p: p.group != "door", hidden=lambda p: "pipe" in p.tags)
+    return View(m, "top", cut=(2, zc, 1), include=lambda p: p.group != "door", hidden=lambda p: "pipe" in p.tags,
+                site=site)
 
 
 def long_section(m):
@@ -489,7 +518,7 @@ def sheet_floor_plan(ctx):
     vp = plan_view(m)
     ext = vp.extents()
     vp.crop = (min(ext[0], rx0) - 1, min(ext[1], ry0) - 1, max(ext[2], rx1) + 1, max(ext[3], ry1) + 1)
-    row_layout(ctx, [vp], x, y + 0.95, w, h - 3.4, [(1.1, 1.1)])
+    row_layout(ctx, [vp], x, y + 0.85, w, h - 3.1, [(1.1, 1.1)])
     vp.draw(s)
     vp.draw_hidden(s)
     s.path(vp._d([(rx0, ry0), (rx1, ry0), (rx1, ry1), (rx0, ry1)]), lw="light", dash=(0.14, 0.05, 0.03, 0.05))
@@ -497,13 +526,12 @@ def sheet_floor_plan(ctx):
     du0, du1, dv0, dv1, hinge_hi = k["door_leaf"]
     hy, ly = (du1, du0) if hinge_hi else (du0, du1)
     wl = du1 - du0
-    hx = D + k["tb"]
-    p_o = vp.P(hx + wl, hy)
-    s.line(*vp.P(hx, hy), *p_o, lw="heavy")
-    r = wl * vp.scale
-    p_c = vp.P(hx, ly)
-    s.path(f"M{S.f(p_o[0])} {S.f(p_o[1])} A{S.f(r)} {S.f(r)} 0 0 {1 if hinge_hi else 0} {S.f(p_c[0])} {S.f(p_c[1])}",
-           lw="light", dash=(0.04, 0.03))
+    if k.get("door_swing") == "in":
+        hx = D - k["st_d"]
+        swing_arc(s, vp, (hx, hy), (hx - wl, hy), (hx, ly))
+    else:
+        hx = D + k["tb"]
+        swing_arc(s, vp, (hx, hy), (hx + wl, hy), (hx, ly))
     for u, v_, t in (((k["x_bf"] + D) / 2, W * 0.3, "PRIVY"), (D + DD / 2, W * 0.66, "COVERED DECK")):
         px, py = vp.P(u, v_)
         s.text(px, py, t, 0.11, "middle", weight="bold")
@@ -516,11 +544,11 @@ def sheet_floor_plan(ctx):
     dims_right(vp, s, [ry0, 0, W, ry1], rx1, off=0.3)
     # section markers outside the dims
     x0, y0, x1, y1 = vp.paper_box()
-    ua = vp.ext[0] - 1.0 / vp.scale
-    ub = vp.ext[2] + 1.0 / vp.scale
+    ua = vp.ext[0] - 0.95 / vp.scale
+    ub = vp.ext[2] + 0.95 / vp.scale
     sec_marker(s, vp, (ua, k["pipe_cy"]), (ub, k["pipe_cy"]), "A", "A-301", (0, 1))
-    va_ = vp.ext[1] - 1.0 / vp.scale
-    vb_ = vp.ext[3] + 1.0 / vp.scale
+    va_ = vp.ext[1] - 0.95 / vp.scale
+    vb_ = vp.ext[3] + 0.8 / vp.scale
     sec_marker(s, vp, (k["pipe_cx"], va_), (k["pipe_cx"], vb_), "B", "A-302", (-1, 0))
     sec_marker(s, vp, (D + DD * 0.55, va_), (D + DD * 0.55, vb_), "C", "A-302", (-1, 0))
     # keynotes
@@ -528,7 +556,8 @@ def sheet_floor_plan(ctx):
     wo = k["window"]
     kn(vp, ((wo["u0"] + wo["u1"]) / 2, W + 1.5, zc), "W1 window: 18\" x 27\" double-hung, sill at "
        f"{fmt_ftin(wo['v0'] - k['FF'])} above floor (see schedule)", (0.25, -0.4))
-    kn(vp, (D + 1, (du0 + du1) / 2, zc), "D1 door: 3-board Z-braced rough-sawn door, swings out onto the deck", (0.45, 0.35))
+    kn(vp, (D - 1, (du0 + du1) / 2, zc), door_text(m) + (" In-swing; the leaf folds against the side wall."
+                                                        if k.get("door_swing") == "in" else ""), (0.45, 0.35))
     kn(vp, (k["pipe_cx"] - 12, k["pipe_cy"] - 11, 0), "30\" HDPE pit below the bench (hidden)", (-0.5, 0.35))
     if k.get("vent"):
         vx, vy, vr_, _ = k["vent"]
@@ -541,19 +570,20 @@ def sheet_floor_plan(ctx):
     kn(vp, (D + DD * 0.72, W * 0.4, k["deck_top"]), "5/4x6 PT decking, 3/16\" gaps, notched at posts", (0.35, 0.55))
     kn(vp, (k["skid_x1"] - 3, 1.75, 5), "4x6 PT skid, chamfered ends with tow hole", (0.35, 0.45))
     kn(vp, (rx1, ry1 - 10, 0), "Line of roof overhang above", (0.35, -0.2))
-    title_under(s, vp, 1, "Floor plan", below=1.45)
+    x0_, y0_, x1_, y1_ = vp.paper_box()
+    S.view_title(s, x0_ + 1.2, y1_ + 1.28, 1, "Floor plan", S.scale_label(vp.scale))
     # bottom band: notes + schedule + keynotes
-    by = sh.y1 - 1.75
-    kn.legend(x, by, w * 0.52, 1.75, cols=2, size=0.07)
-    cx = x + w * 0.55
+    by = sh.y1 - 1.3
+    kn.legend(x, by, w * 0.56, 1.3, cols=3, size=0.066)
+    cx = x + w * 0.58
     do = k["door"]
     rows = [["D1", "Door", f"{fmt_in(do['u1'] - do['u0'])} x {fmt_in(do['v1'] - do['v0'])}",
-             "3-board Z-braced, rough-sawn" + (", crescent vent" if m.cfg["door"].get("moon_cutout") else "") +
-             "; " + m.cfg["door"]["hardware"]],
+             door_text(m)[4:] + f"; swing {k.get('door_swing', 'out')}, hinge "
+             f"{m.cfg['door'].get('hinge_side', 'right')} (from outside)"],
             ["W1", "Window", f"{fmt_in(wo['u1'] - wo['u0'])} x {fmt_in(wo['v1'] - wo['v0'])}",
              f"{m.cfg['window']['description']}; sill +{fmt_ftin(wo['v0'] - k['FF'])} AFF"]]
     table(s, cx, by, [("Tag", 0.35, "start"), ("Type", 0.55, "start"), ("R.O.", 0.95, "start"),
-                      ("Remarks", w * 0.45 - 1.85, "start")], rows, title="Door & window schedule", size=0.068)
+                      ("Remarks", w * 0.42 - 1.85, "start")], rows, title="Door & window schedule", size=0.064)
     return sh.done()
 
 
@@ -580,8 +610,7 @@ def sheet_roof(ctx):
     s.text(ax_ + 0.08, (ay_ + by_) / 2, f"{m.cfg['roof']['pitch']}:12", 0.1, weight="bold")
     s.text(ax_ + 0.08, (ay_ + by_) / 2 + 0.14, "DOWN", 0.075)
     zt = k["z_roof"](W * 0.5)
-    kn(vr, ((D + DD) * 0.3, W * 0.45, zt), m.cfg["roof"]["roofing"]["description"] + "; lap one corrugation, "
-       "#9 roofing screws w/ EPDM washers in the valleys at every purlin", (-0.2, 0.75))
+    kn(vr, ((D + DD) * 0.3, W * 0.45, zt), roof_text(m), (-0.2, 0.75))
     if k.get("vent"):
         vx, vy, vr_, _ = k["vent"]
         kn(vr, (vx, vy, zt), "4\" vent through EPDM roof boot, screened cap 18\" above roof", (-0.45, -0.5))
@@ -595,15 +624,19 @@ def sheet_roof(ctx):
     raf = k["rafter_x"]
     dims_below(vf, s, [raf[0]] + [r + 0.75 for r in raf[1:-1]] + [raf[-1] + 1.5], k["y_lo"], off=0.3)
     pur = [p[0] for p in k["purlins"]]
-    dims_right(vf, s, [k["y_lo"]] + pur[1:] + [k["y_hi"]], rx1, off=0.3)
+    dims_right(vf, s, [k["y_lo"]] + (pur[1:] if pur else [0, W]) + [k["y_hi"]], rx1, off=0.3)
     zr = k["z_Lb"]
     kn(vf, (raf[2] + 0.75, W * 0.62, zr), "2x6 rafters @ 24\" o.c. max, birdsmouth on both beams, plumb-cut tails "
        "(see A-501)", (0.3, -0.4))
-    kn(vf, (D + DD * 0.45, pur[1] + 1.5, zr), "2x4 purlins laid flat @ 24\" max along the slope, (2) #10 x 3\" "
-       "screws per rafter", (0.35, 0.45))
+    if pur:
+        kn(vf, (D + DD * 0.45, pur[1] + 1.5, zr), "2x4 purlins laid flat @ 24\" max along the slope, (2) #10 x 3\" "
+           "screws per rafter", (0.35, 0.45))
+    else:
+        kn(vf, (-k["rake"][0] + 0.75, W * 0.62, zr), "2x6 fly rafter at each rake, hung from the sheathing and fascia",
+           (-0.35, -0.4))
     kn(vf, (D * 0.5, 1.75, zr), "4x6 beam, low side, continuous from back wall to deck post", (0.2, 0.5))
     kn(vf, (D * 0.5, W - 1.75, zr), "4x6 beam, high side, continuous from back wall to deck post", (0.2, -0.45))
-    kn(vf, (rx0 + 0.5, W * 0.4, zr), "1x6 rough-sawn barge board on purlin ends", (-0.4, 0.3))
+    kn(vf, (rx0 + 0.5, W * 0.4, zr), "1x6 rough-sawn barge board", (-0.4, 0.3))
     kn(vf, (D * 0.25, k["y_lo"] - 0.5, zr), "1x6 rough-sawn fascia on rafter tails", (-0.2, 0.4))
     kn(vf, (raf[1] + 8, W - 0.75, zr), "2x6 frieze blocks between rafters over building walls", (0.3, -0.4))
     title_under(s, vf, 2, "Roof framing plan", below=0.7)
@@ -671,7 +704,7 @@ def _elev_keynotes(kn, v, m, side):
     k = m.key
     W, D, DD = k["W"], k["D"], k["DD"]
     tb, tbat = k["tb"], k["tbat"]
-    roof_note = "29 ga galvanized corrugated steel on 2x4 purlins; 3:12"
+    roof_note = roof_text(m) + f"; {m.cfg['roof']['pitch']}:12"
     board = "1x10 rough-sawn boards, 1/2\" gaps, 1x3 battens (board-and-batten)"
     skid = "4x6 PT skid on edge, chamfered ends"
     if side == "left":
@@ -698,8 +731,7 @@ def _elev_keynotes(kn, v, m, side):
         kn(v, (D + DD * 0.5, W, 2.5), skid, (0.3, 0.45))
     elif side == "front":
         du0, du1, dv0, dv1, _ = k["door_leaf"]
-        kn(v, (D + 2, (du0 + du1) / 2 + 5, dv0 + 28), "D1 door: 3 rough-sawn boards on a 1x6 Z-brace, strap hinges, "
-           "thumb latch, crescent vent", (0.55, 0.2))
+        kn(v, (D - 1.5, (du0 + du1) / 2 + 5, dv0 + 28), door_text(m), (0.55, 0.2))
         kn(v, (D + DD, W * 0.35, k["deck_top"] - 0.5), "5/4x6 PT deck on 2x4 PT joists", (0.35, 0.45))
         kn(v, (D + tb + 1, k["door"]["u1"] + 1.75, dv1 - 20), "1x4 rough-sawn door casing", (0.4, 0.1))
         kn(v, (D + tb, W - 3, k["FF"] + 60), board, (0.45, -0.2))
@@ -767,13 +799,13 @@ def _section_keynotes(kn, v, m, which):
         if k.get("vent"):
             vx, vy, vr_, vtop = k["vent"]
             kn(v, (vx + vr_, c, vtop - 10), "4\" PVC vent, screened cap", (0.35, 0.1))
-        kn(v, (D + DD * 0.3, c, k["z_roof"](c)), "2x6 rafters @ 24\", 2x4 purlins, corrugated steel", (0.3, -0.4))
+        kn(v, (D + DD * 0.3, c, k["z_roof"](c)), "2x6 rafters @ 24\" max; " + roof_text(m), (0.3, -0.4))
         kn(v, (k["skid_x0"] + 3, W, 2.75), "4x6 PT skid beyond", (-0.3, 0.45))
     else:
         c = pcx
         kn(v, (c, W - 1.75, k["z_Hb"] - 2.75), "4x6 beam on 2x4 top plate, birdsmouth rafter seat", (0.45, -0.25))
         kn(v, (c, 1.75, k["z_Lb"] - 2.75), "4x6 beam on 2x4 top plate, birdsmouth rafter seat", (-0.45, -0.25))
-        kn(v, (c, W * 0.3, k["z_rt"](W * 0.3) + 1), "2x6 rafters @ 24\", 2x4 purlins, corrugated steel", (-0.35, -0.5))
+        kn(v, (c, W * 0.3, k["z_rt"](W * 0.3) + 1), "2x6 rafters @ 24\" max; " + roof_text(m), (-0.35, -0.5))
         kn(v, (c, pcy + 3, k["z_bt"] + 0.6), "Toilet seat with lid on 3/4\" BC plywood bench top, sealed", (0.5, -0.4))
         kn(v, (c, pcy + 12, (fz[0] + fz[1]) / 2), "Flange: 3/4\" PT plywood plate with 30\" opening + 2-ply collar; "
            "EPDM skirt with SS band clamps (A-501)", (0.6, 0.25))
@@ -807,7 +839,7 @@ def sheet_sections(ctx, number, which):
         kn(vc, (cxs, k["W"] * 0.5, k["deck_top"] - 0.5), "5/4x6 PT decking on 2x4 PT joists @ 16\" between (2) 2x4 "
            "PT rims", (0.35, 0.55))
         do = k["door"]
-        kn(vc, (cxs, (do["u0"] + do["u1"]) / 2, do["v1"] - 20), "D1 door beyond, crescent vent, strap hinges", (0.4, -0.3))
+        kn(vc, (cxs, (do["u0"] + do["u1"]) / 2, do["v1"] - 20), "D1 door beyond (see A-503)", (0.4, -0.3))
         kn(vc, (cxs, 1.75, k["z_Lb"] - 2.75), "4x6 beam on post, 4x4 knee brace (beyond)", (-0.45, -0.3))
         title_under(s, vc, 2, "Section C: through the deck", below=0.7)
     v.draw(s)
@@ -1000,7 +1032,8 @@ def sheet_details(ctx):
     title_under(s, v2, 2, "Skid end (both ends)", below=0.45)
     # 3. rafter
     rid = [p for p in m.parts if p.name == "Rafter"][0]
-    v3 = View(m, "front", include=lambda p: p is rid or p.name in ("Beam", "Purlin", "Fascia") or "roofing" in p.tags,
+    v3 = View(m, "front", include=lambda p: p is rid or p.name in ("Beam", "Purlin", "Fascia", "Roof sheathing")
+              or "roofing" in p.tags,
               cut=(0, rid.bbox()[0][0] + 0.75, 1), grade=False,
               crop=(k["y_lo"] - 3, k["z_Lb"] - 7, k["y_hi"] + 3, k["z_roof"](k["y_hi"]) + 3))
     row_layout(ctx, [v3], cx, y + 2.6, cw, 2.6, [(0.35, 0.35)])
@@ -1012,8 +1045,8 @@ def sheet_details(ctx):
        (-0.35, -0.55))
     kn(v3, (0, k["W"] - 1.75, k["z_Hb"]), "Birdsmouth at high beam, heel cut on the inside face", (0.3, 0.45))
     kn(v3, (0, k["y_lo"] - 0.5, k["z_rt"](k["y_lo"]) - 2.5), "Plumb-cut tail, 1x6 rough-sawn fascia", (-0.3, 0.45))
-    kn(v3, (0, k["W"] * 0.55, k["z_roof"](k["W"] * 0.55)), f"2x4 purlins flat @ 24\" max; {m.cfg['roof']['pitch']}:12 "
-       "corrugated steel", (0.2, -0.4))
+    kn(v3, (0, k["W"] * 0.55, k["z_roof"](k["W"] * 0.55)), roof_text(m) + f"; {m.cfg['roof']['pitch']}:12",
+       (0.2, -0.4))
     title_under(s, v3, 3, f"Rafter layout (typical) - {fmt_ftin(k['raf_len'])} 2x6", below=0.45)
     kn.legend(cx, y + 5.95, cw, h - 5.95, cols=1, size=0.07)
     return sh.done()
@@ -1028,7 +1061,12 @@ def sheet_panel_door(ctx):
     v4 = View(m, "back", include=lambda p: p.group == "removable_panel" or p.name in ("Skid", "Bench header", "Z-flashing"),
               crop=(-W - 4, -1.5, 4, k["panel"][1] + 4))
     du0, du1, dv0, dv1, _ = k["door_leaf"]
-    v5 = View(m, "back", include=lambda p: p.group == "door", grade=False, crop=(-du1 - 2, dv0 - 2, -du0 + 2, dv1 + 2))
+    do = k["door"]
+    if k.get("door_prehung"):
+        v5 = View(m, "front", include=lambda p: p.group == "door" or (p.name in ("Head casing", "Side casing") and
+                  p.bbox()[0][0] > k["D"] - 1), grade=False, crop=(do["u0"] - 6, k["FF"] - 2, do["u1"] + 6, do["v1"] + 6))
+    else:
+        v5 = View(m, "back", include=lambda p: p.group == "door", grade=False, crop=(-du1 - 2, dv0 - 2, -du0 + 2, dv1 + 2))
     row_layout(ctx, [v4], x, y + 0.4, w * 0.55, 3.2, [(0.6, 0.6)])
     v4.draw(s)
     v4.draw_ground(s)
@@ -1049,12 +1087,20 @@ def sheet_panel_door(ctx):
     title_under(s, v4, 1, "Removable back panel (from outside)", below=0.5)
     row_layout(ctx, [v5], x + w * 0.56, y + 0.4, w * 0.24, h - 1.2, [(0.5, 0.4)])
     v5.draw(s)
-    dims_below(v5, s, [-du1, -du0], dv0, off=0.25)
-    dims_left(v5, s, [dv0, dv1], -du1, off=0.3)
-    kn(v5, (0, (du0 + du1) / 2, (dv0 + dv1) / 2), "1x6 rough-sawn Z-brace, diagonal runs down to the hinge side",
-       (0.45, 0.3))
-    kn(v5, (0, du0 + 4, dv0 + 20), "3 rough-sawn 1x10 boards, 1\" screws from inside at every crossing", (-0.35, 0.35))
-    title_under(s, v5, 2, "Door D1 (inside face)", below=0.5)
+    if k.get("door_prehung"):
+        dims_below(v5, s, [do["u0"], do["u1"]], k["FF"], off=0.25)
+        dims_left(v5, s, [k["FF"], do["v1"]], do["u0"] - 6, off=0.3)
+        kn(v5, (k["D"], (du0 + du1) / 2, (dv0 + dv1) / 2 + 10), door_text(m), (0.45, -0.3))
+        kn(v5, (k["D"] + 1.5, do["u0"] - 1.75, k["FF"] + 50), "Rough-sawn 1x4 casing over the jamb; flash the head with "
+           "Z-flashing and tape the jamb legs", (-0.4, 0.3))
+        kn(v5, (k["D"] + 0.5, (du0 + du1) / 2, k["FF"] + 0.5), "Adjustable sill on sill-pan flashing; 1 3/4\" step down "
+           "to the deck", (0.4, 0.35))
+    else:
+        dims_below(v5, s, [-du1, -du0], dv0, off=0.25)
+        dims_left(v5, s, [dv0, dv1], -du1, off=0.3)
+        kn(v5, (0, (du0 + du1) / 2, (dv0 + dv1) / 2), "1x6 rough-sawn Z-brace, diagonal runs down to the hinge side",
+           (0.45, 0.3))
+    title_under(s, v5, 2, "Door D1 (exterior)" if k.get("door_prehung") else "Door D1 (inside face)", below=0.5)
     # bench plan detail
     vb = View(m, "top", include=lambda p: p.group == "bench" or p.name in ("Vent pipe",), grade=False,
               crop=(-1, k["st_d"] - 1, k["x_bf"] + 2, W - k["st_d"] + 1))
@@ -1165,6 +1211,129 @@ def sheet_install(ctx):
     return sh.done()
 
 
+def _elec_symbol(s, x, y, kind, tag):
+    t = s.t
+    if kind in ("switch", "switch_wp"):
+        s.text(x, y + 0.045, "S", 0.13, "middle", weight="bold")
+        if kind == "switch_wp":
+            s.text(x + 0.07, y + 0.085, "WP", 0.055, "start", weight="bold")
+    elif kind in ("receptacle", "receptacle_wp"):
+        r = 0.07
+        s.circle(x, y, r, fill=t["bg"], lw="med")
+        s.line(x - r * 1.5, y - 0.025, x + r * 1.5, y - 0.025, lw="med")
+        s.line(x - r * 1.5, y + 0.025, x + r * 1.5, y + 0.025, lw="med")
+        s.text(x, y + r + 0.1, "GFCI" + (" WP" if kind == "receptacle_wp" else ""), 0.055, "middle", weight="bold")
+    elif kind == "light":
+        r = 0.1
+        s.circle(x, y, r, fill=t["bg"], lw="med")
+        d = r * 0.7
+        s.line(x - d, y - d, x + d, y + d, lw="med")
+        s.line(x - d, y + d, x + d, y - d, lw="med")
+    elif kind == "disconnect":
+        s.rect(x - 0.1, y - 0.07, 0.2, 0.14, fill=t["bg"], lw="med")
+        s.line(x - 0.1, y + 0.07, x + 0.1, y - 0.07, lw="light")
+    elif kind == "panel":
+        s.rect(x - 0.13, y - 0.08, 0.26, 0.16, fill=t["bg"], lw="med")
+        s.path(S.pts_to_d([(x - 0.13, y + 0.08), (x + 0.13, y - 0.08), (x + 0.13, y + 0.08)]), fill=t["ink"], lw="fine")
+    s.text(x + 0.13, y - 0.08, tag, 0.075, "start", weight="bold", color=t["accent"])
+
+
+def _wire(s, a, b, bulge=0.25, dash=(0.06, 0.04)):
+    mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    ln = math.hypot(dx, dy) or 1.0
+    cx, cy = mx - dy / ln * bulge, my + dx / ln * bulge
+    s.path(f"M{S.f(a[0])} {S.f(a[1])} Q{S.f(cx)} {S.f(cy)} {S.f(b[0])} {S.f(b[1])}", lw="light", dash=dash)
+
+
+def sheet_electrical(ctx):
+    sh = Sheet(ctx, "E-101", "Electrical plan")
+    s, m, k = sh.svg, ctx["model"], ctx["model"].key
+    x, y, w, h = sh.area
+    el = m.cfg.get("electrical", {})
+    if not k.get("electrical"):
+        s.text(x + w / 2, y + h / 2, "No electrical service in this design (electrical.enabled = false).", 0.14, "middle")
+        return sh.done()
+    W, D, DD = k["W"], k["D"], k["DD"]
+    vp = plan_view(m, site=True)
+    ext = vp.extents()
+    vp.crop = (ext[0] - 1, ext[1] - 30, ext[2] + 1, ext[3] + 4)
+    row_layout(ctx, [vp], x, y + 0.5, w * 0.64, h - 1.4, [(0.7, 0.5)])
+    vp.draw(s, lw_face="light")
+    du0, du1, dv0, dv1, hinge_hi = k["door_leaf"]
+    hy, ly = (du1, du0) if hinge_hi else (du0, du1)
+    if k.get("door_swing") == "in":
+        swing_arc(s, vp, (D - k["st_d"], hy), (D - k["st_d"] - (du1 - du0), hy), (D - k["st_d"], ly))
+    else:
+        swing_arc(s, vp, (D + k["tb"], hy), (D + k["tb"] + (du1 - du0), hy), (D + k["tb"], ly))
+    devs = {d["tag"]: d for d in k["electrical"]["devices"]}
+    off = {"S1": (-6, -2), "R1": (-9, -6), "S2": (7, -4), "R2": (7, 6), "DS": (0, -7), "MP": (0, 9)}
+    pos = {}
+    for tag, d in devs.items():
+        ox, oy = off.get(tag, (0, 0))
+        pos[tag] = vp.P(d["x"] + ox, d["y"] + oy)
+        _elec_symbol(s, *pos[tag], d["kind"], tag)
+    for a, b in (("MP", "DS"), ("DS", "R1"), ("R1", "S1"), ("S1", "L1"), ("DS", "R2"), ("R2", "S2"), ("S2", "L2")):
+        if a in pos and b in pos:
+            _wire(s, pos[a], pos[b])
+    svc = el.get("service", {})
+    src = "MP" if "MP" in pos else "DS"
+    if src in pos:
+        px, py = pos[src]
+        arrow(s, px + 0.9, py + 0.55, px + 0.18, py + 0.1)
+        fd = el.get("feed", {})
+        lines = ([f"UTILITY SERVICE LATERAL ({svc.get('utility', 'serving utility').upper()}) TO METER-MAIN MP",
+                  f"MP TO DS: {k.get('feed_awg', 12)}-2 W/ GND UF-B DIRECT BURIED, "
+                  f"{fmt_in(L(el.get('burial_depth', 24)))} MIN COVER (NEC TABLE 300.5)"] if src == "MP" else
+                 [f"HOME RUN TO {fd.get('source', 'PANEL').upper()}"])
+        s.mtext(px + 0.95, py + 0.6, lines, 0.068, weight="bold")
+    title_under(s, vp, 1, "Electrical plan", below=0.95)
+    # legend + schedule + notes
+    cx = x + w * 0.66
+    cw = x + w - cx
+    rows = []
+    for tag in ("MP", "DS", "S1", "R1", "L1", "S2", "R2", "L2"):
+        d = devs.get(tag)
+        if not d:
+            continue
+        mount = (f"{fmt_ftin(d['z'] - k['FF'])} AFF" if d["kind"] not in ("light", "disconnect", "panel")
+                 else ("ceiling" if d["kind"] == "light" else f"{fmt_ftin(d['z'])} above grade"))
+        rows.append([tag, d["desc"], mount])
+    yy = table(s, cx, y + 0.1, [("Tag", 0.35, "start"), ("Device", cw - 1.35, "start"), ("Mount", 1.0, "start")], rows,
+               title="Device schedule", size=0.066)
+    yy += 0.3
+    s.text(cx, yy, "SYMBOLS", 0.09, weight="bold")
+    yy += 0.22
+    for kind, label in (("panel", "Meter-main / panelboard"), ("disconnect", "Disconnect switch"), ("switch", "Switch"),
+                        ("switch_wp", "Switch, weatherproof"), ("receptacle", "Duplex receptacle, GFCI"),
+                        ("light", "Ceiling light")):
+        _elec_symbol(s, cx + 0.15, yy - 0.03, kind, "")
+        s.text(cx + 0.45, yy, label, 0.068)
+        yy += 0.36
+    s.line(cx + 0.02, yy - 0.05, cx + 0.3, yy - 0.05, lw="light", dash=(0.06, 0.04))
+    s.text(cx + 0.45, yy, "Circuit run (switch leg / feed)", 0.068)
+    yy += 0.35
+    fd = el.get("feed", {})
+    notes = [
+        f"Dedicated service: {svc.get('description', 'meter-main pedestal')} on a PT post "
+        f"{fmt_ftin(L(svc.get('distance', 72)))} off the low side. The utility service lateral, meter and main "
+        "stay put when the privy moves. Coordinate the meter location and lateral route with the serving utility.",
+        f"Grounding at MP: {svc.get('grounding', '(2) 5/8 in x 8 ft rods 6 ft apart, #6 Cu GEC')}; neutral bonded "
+        "only at the service disconnect (MP main).",
+        f"Branch circuit to the privy: {fd.get('breaker_a', 20)} A GFCI breaker in MP, {k.get('feed_awg', 12)} AWG UF-B "
+        f"with ground (voltage drop on A-602). Spare breaker spaces for a later circuit.",
+        "DS at the point of entry is the building disconnect (NEC 225.31/225.36) and the unhook point for relocation. "
+        "No grounding electrode at the privy: single branch circuit with an EGC (NEC 250.32(A) exception).",
+        "All receptacles GFCI (NEC 210.8); R2 weather- and tamper-resistant with an extra-duty in-use cover (406.9).",
+        el.get("wiring", "UF-B with ground") + ". Unheated, damp building: NM-B is not permitted.",
+        "Fixtures damp-rated. Keep 30 in x 36 in working space clear in front of MP (NEC 110.26).",
+        "Permit and inspections: Rockingham County (NEC as adopted in NC). Utility releases the meter after inspection.",
+        "Relocation: MP branch breaker off, open DS, disconnect the UF-B in the entry box, pull it from the conduit.",
+    ]
+    notes_block(s, cx, yy, cw, "Electrical notes", notes, size=0.068)
+    return sh.done()
+
+
 def sheet_schedules(ctx):
     sh = Sheet(ctx, "A-601", "Cut list & material schedules")
     s, m, k = sh.svg, ctx["model"], ctx["model"].key
@@ -1178,7 +1347,7 @@ def sheet_schedules(ctx):
     size, rh = 0.056, 0.088
     table(s, x, y + 0.1, cols, rows[:half], title="Cut list (1 of 2)", size=size, rh=rh, max_y=sh.y1)
     x2 = x + sum(colw) + 0.2
-    table(s, x2, y + 0.1, cols, rows[half:], title="Cut list (2 of 2)", size=size, rh=rh, max_y=sh.y1)
+    y2 = table(s, x2, y + 0.1, cols, rows[half:], title="Cut list (2 of 2)", size=size, rh=rh, max_y=sh.y1)
     x3 = x2 + sum(colw) + 0.2
     cw = sh.x1 - x3
     pr = bom.purchase(m, cl)
@@ -1194,9 +1363,12 @@ def sheet_schedules(ctx):
                [[f"{r['label']}: {r['pieces']}", str(r["qty"])] for r in sg], title="Sheet goods", size=size, rh=rh)
     yy += 0.3
     hw = bom.hardware(m)
-    table(s, x3, yy, [("Item", cw - 1.3, "start"), ("Qty", 0.55, "middle"), ("Note", 0.75, "start")],
-          [[r["item"], str(r["qty"]), r["note"]] for r in hw], title="Pit, roofing & hardware", size=size, rh=rh,
-          max_y=sh.y1)
+    hcols = [("Item", cw - 1.3, "start"), ("Qty", 0.55, "middle"), ("Note", 0.75, "start")]
+    rest = []
+    table(s, x3, yy, hcols, [[r["item"], str(r["qty"]), r["note"]] for r in hw], title="Pit, roofing & hardware",
+          size=size, rh=rh, max_y=sh.y1, overflow=rest)
+    if rest:        # continue under the second half of the cut list
+        table(s, x2, y2 + 0.3, hcols, rest, title="Pit, roofing & hardware (cont.)", size=size, rh=rh, max_y=sh.y1)
     return sh.done()
 
 
@@ -1228,7 +1400,11 @@ def sheet_checks(ctx):
         ["foundation.skids", f"{cfg['foundation']['skids']['stock']} {cfg['foundation']['skids']['orientation']}, "
          f"chamfer {fmt_in(k['chamfer'][0])} x {fmt_in(k['chamfer'][1])}"],
         ["walls.stud_spacing", fmt_in(L(b["walls"]["stud_spacing"]))],
-        ["door R.O.", f"{fmt_in(L(cfg['door']['rough_opening_width']))} x {fmt_in(L(cfg['door']['rough_opening_height']))}"],
+        ["roof.roofing", f"{r['roofing'].get('profile', 'corrugated')} on {k.get('substrate', 'purlins')}"],
+        ["pit.usage", f"{cfg['pit'].get('usage', {}).get('persons', '?')} persons x "
+         f"{cfg['pit'].get('usage', {}).get('days_per_year', '?')} days/yr"],
+        ["door R.O.", f"{fmt_in(k['door']['u1'] - k['door']['u0'])} x {fmt_in(k['door']['v1'] - k['door']['v0'])}, "
+         f"{cfg['door'].get('type', 'board')}, swing {k.get('door_swing', 'out')}"],
         ["window unit, sill", f"{fmt_in(L(cfg['window']['unit_width']))} x {fmt_in(L(cfg['window']['unit_height']))}, "
          f"{fmt_ftin(L(cfg['window']['sill_height']))}"],
     ]
@@ -1309,6 +1485,7 @@ SHEETS = [
     ("A-501", "Details: pit & flange, skid, rafter", sheet_details),
     ("A-502", "Installation & relocation sequence", sheet_install),
     ("A-503", "Details: removable panel, door, bench", sheet_panel_door),
+    ("E-101", "Electrical plan", sheet_electrical),
     ("A-601", "Cut list & material schedules", sheet_schedules),
     ("A-602", "Design checks, parameters & render setup", sheet_checks),
     ("R-101", "Renderings", sheet_renders),

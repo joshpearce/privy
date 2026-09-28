@@ -209,17 +209,21 @@ def build(cfg: dict) -> Model:
     yi0, yi1 = st_d, W - st_d        # interior faces of side-wall framing
     B.add("bench", "Bench header", Box(0, yi0, z_h0, st_d, yi1, z_h1), bench["header"], grain=1,
           note="hang from doubled corner studs w/ face-mount hangers")
-    B.add("bench", "Bench front rail", Box(x_fp0 - bf.t, yi0, z_bf0, x_fp0, yi1, z_bu), bench["framing"], grain=1)
+    rpl = int(bench.get("front_rail_plies", 1))
+    for i in range(rpl):
+        B.add("bench", "Bench front rail", Box(x_fp0 - (i + 1) * bf.t, yi0, z_bf0, x_fp0 - i * bf.t, yi1, z_bu),
+              bench["framing"], grain=1)
+    x_rail = x_fp0 - rpl * bf.t
     for y0 in (yi0, yi1 - bf.t):
-        B.add("bench", "Bench side ledger", Box(st_d, y0, z_bf0, x_fp0 - bf.t, y0 + bf.t, z_bu), bench["framing"], grain=0)
+        B.add("bench", "Bench side ledger", Box(st_d, y0, z_bf0, x_rail, y0 + bf.t, z_bu), bench["framing"], grain=0)
     hole = bench["hole"]
     hl, hw = L(hole["length"]), L(hole["width"])
     hx = x_bf - L(hole["setback"])
     jc = L(bench.get("joist_clear_to_hole", 2))
     bj_y = [pcy - hw / 2 - jc - bf.t, pcy + hw / 2 + jc]
     for y0 in bj_y:
-        B.add("bench", "Bench joist", Box(st_d, y0, z_bf0, x_fp0 - bf.t, y0 + bf.t, z_bu), bench["framing"], grain=0)
-    k.update(hole=(hx, pcy, hl / 2, hw / 2), bench_joist_y=bj_y)
+        B.add("bench", "Bench joist", Box(st_d, y0, z_bf0, x_rail, y0 + bf.t, z_bu), bench["framing"], grain=0)
+    k.update(hole=(hx, pcy, hl / 2, hw / 2), bench_joist_y=bj_y, rail_plies=rpl)
     B.add("bench", "Bench top", Plate(("rect", 0, yi0, x_bf, yi1), z_bu, z_bt, hole=("ellipse", hx, pcy, hl / 2, hw / 2)),
           bench["top"], grain=1, note="seat hole cut to template")
     B.add("bench", "Bench front panel", Box(x_fp0, yi0, FF, x_bf, yi1, z_bu), bench["front_panel"], grain=1)
@@ -268,10 +272,14 @@ def build(cfg: dict) -> Model:
     tv = raf.w * c_
     z_rb = lambda y: z_Lb + (y - beam_w) * s_          # noqa: E731  rafter bottom line
     z_rt = lambda y: z_rb(y) + tv                       # noqa: E731  rafter top line
-    pur = B.s(roof["purlin"])
-    z_pt = lambda y: z_rt(y) + pur.t * c_               # noqa: E731  purlin top (roofing underside)
+    substrate = roof.get("substrate", "purlins")
+    sub = B.s(roof["purlin"] if substrate == "purlins" else roof["sheathing"])
+    z_pt = lambda y: z_rt(y) + sub.t * c_               # noqa: E731  top of purlins / sheathing (roofing underside)
     rfg = roof["roofing"]
-    z_roof = lambda y: z_pt(y) + L(rfg["profile_depth"])  # noqa: E731
+    profile = rfg.get("profile", "corrugated")
+    pan_t = L(rfg.get("thickness", 0.024))
+    top_add = L(rfg["profile_depth"]) if profile == "corrugated" else pan_t
+    z_roof = lambda y: z_pt(y) + top_add               # noqa: E731
     pv = B.s(wl["plate"]).t * c_                        # vertical depth of sloped plate
     k.update(slope=s_, c=c_, z_Lb=z_Lb, z_Hb=z_Hb, beam_w=beam_w, beam_h=beam_h, tv=tv,
              z_rb=z_rb, z_rt=z_rt, z_pt=z_pt, z_roof=z_roof, st_d=st_d)
@@ -359,7 +367,7 @@ def build(cfg: dict) -> Model:
                               tags={"framing", "wall"})
                         verts.append((c, c + st_t, vb0, o["v0"] - plate_t))
         for c in commons:
-            if any(z0 - 0.01 < c + st_t and c < z1 + 0.01 for z0, z1 in zones):
+            if any(c + st_t > z0 + 0.01 and c < z1 - 0.01 for z0, z1 in zones):
                 continue
             vbox("Stud", c, c + st_t, vb0, None, wl["stud"])
         # blocking rows (flat, flush to exterior) for board-and-batten nailing
@@ -448,8 +456,18 @@ def build(cfg: dict) -> Model:
 
     # front wall with door
     dr = cfg["door"]
-    dro_w, dro_h = L(dr["rough_opening_width"]), L(dr["rough_opening_height"])
-    dcy = W / 2 + L(dr.get("offset", 0))
+    prehung = dr.get("type", "board") == "prehung"
+    if prehung:
+        ra = dr.get("rough_opening_allowance", [2, 2.5])
+        dro_w, dro_h = L(dr["slab_width"]) + L(ra[0]), L(dr["slab_height"]) + L(ra[1])
+    else:
+        dro_w, dro_h = L(dr["rough_opening_width"]), L(dr["rough_opening_height"])
+    hinge_hi = dr.get("hinge_side", "right") == "right"     # as seen from outside: right = +y (high side)
+    if dr.get("position", "center") == "hinge_corner":
+        # king + jack against the end stud on the hinge side, so an in-swinging leaf folds flat to the side wall
+        dcy = (yi1 - 3 * st_t - dro_w / 2) if hinge_hi else (yi0 + 3 * st_t + dro_w / 2)
+    else:
+        dcy = W / 2 + L(dr.get("offset", 0))
     d_open = dict(kind="door", u0=dcy - dro_w / 2, u1=dcy + dro_w / 2, v0=FF, v1=FF + dro_h, header=dr["header"])
     front = WallFrame("front", 0, D, 1, 1)
     ops = [d_open]
@@ -485,22 +503,32 @@ def build(cfg: dict) -> Model:
             for poly in ([[0, z_Lb], [raf.t, z_Lb], [raf.t, z_rt(raf.t)], [0, z_rt(0)]],
                          [[W - raf.t, z_Hb], [W, z_Hb], [W, z_rt(W)], [W - raf.t, z_rt(W - raf.t)]]):
                 B.add("roof", "Frieze block", Prism("x", poly, a + raf.t, b), roof["rafter"], grain=0, tags={"framing"})
-    # purlins (flat 2x4 on the rafters)
     th = math.atan(s_)
     ct, stn = math.cos(th), math.sin(th)
     fas = B.s(roof["fascia"])
     rb, rf = L(roof["rake_back"]), L(roof["rake_front"])
-    run = (y_hi - y_lo) - pur.w * ct
-    n_p = max(1, math.ceil(run * c_ / L(roof["purlin_spacing"]) - 1e-9))
     purlins = []
-    for i in range(n_p + 1):
-        a = y_lo + run * i / n_p
-        p0 = np.array([a, z_rt(a)])
-        p1 = p0 + pur.w * np.array([ct, stn])
-        nrm = pur.t * np.array([-stn, ct])
-        B.add("roof", "Purlin", Prism("x", [p0, p1, p1 + nrm, p0 + nrm], -rb, x_end + rf), roof["purlin"], grain=0,
-              tags={"framing"})
-        purlins.append((a, a + pur.w * ct))
+    if substrate == "purlins":            # flat 2x4 purlins on the rafters (exposed-fastener panels)
+        run = (y_hi - y_lo) - sub.w * ct
+        n_p = max(1, math.ceil(run * c_ / L(roof["purlin_spacing"]) - 1e-9))
+        for i in range(n_p + 1):
+            a = y_lo + run * i / n_p
+            p0 = np.array([a, z_rt(a)])
+            p1 = p0 + sub.w * np.array([ct, stn])
+            nrm = sub.t * np.array([-stn, ct])
+            B.add("roof", "Purlin", Prism("x", [p0, p1, p1 + nrm, p0 + nrm], -rb, x_end + rf), roof["purlin"], grain=0,
+                  tags={"framing"})
+            purlins.append((a, a + sub.w * ct))
+    else:                                 # plywood deck on rafters, fly rafters carry the rake overhangs
+        sy0, sy1 = y_lo - fas.t, y_hi + fas.t
+        spoly = [[sy0, z_rt(sy0)], [sy1, z_rt(sy1)], [sy1, z_pt(sy1)], [sy0, z_pt(sy0)]]
+        B.add("roof", "Roof sheathing", Prism("x", spoly, -rb, x_end + rf), roof["sheathing"], grain=0,
+              note="H-clips between rafters; synthetic underlayment over", tags={"roofing_deck"})
+        if roof.get("fly_rafters", True) and (rb > 0 or rf > 0):
+            fpoly = [[y_lo, z_rt(y_lo) - tv], [y_hi, z_rt(y_hi) - tv], [y_hi, z_rt(y_hi)], [y_lo, z_rt(y_lo)]]
+            for x0 in ((-rb,) if rb > raf.t else ()) + ((x_end + rf - raf.t,) if rf > raf.t else ()):
+                B.add("roof", "Fly rafter", Prism("x", fpoly, x0, x0 + raf.t), roof["rafter"], grain=1,
+                      length=(y_hi - y_lo) * c_, note="hung from sheathing + fascia; plumb-cut ends", tags={"framing"})
     k["purlins"] = purlins
     # fascia + barge
     B.add("roof", "Fascia", Box(-rb, y_lo - fas.t, z_rt(y_lo) - fas.w, x_end + rf, y_lo, z_rt(y_lo)), roof["fascia"], grain=0,
@@ -513,18 +541,37 @@ def build(cfg: dict) -> Model:
         B.add("roof", "Barge board", Prism("x", bpoly, x0, x0 + fas.t), roof["fascia"], grain=1,
               length=(by1 - by0) * c_, tags={"trim"})
     # roofing
-    cov = L(rfg["coverage_width"])
     rx0, rx1 = -rb - fas.t - L(rfg["rake_overhang"]), x_end + rf + fas.t + L(rfg["rake_overhang"])
     ry0, ry1 = by0 - L(rfg["eave_overhang"]), by1 + 0.5
-    n_sh = math.ceil((rx1 - rx0) / cov - 1e-9)
-    for i in range(n_sh):
-        a = rx0 + i * cov
-        b = min(rx1, a + cov)
-        B.add("roof", "Roofing sheet", CorrugatedSheet(a, b, ry0, ry1, z_pt(ry0), s_, L(rfg["profile_pitch"]),
-                                                       L(rfg["profile_depth"])),
-              material=rfg.get("material", "galvanized"), grain=1, length=(ry1 - ry0) * c_, tags={"roofing"})
+    mat_r = rfg.get("material", "galvanized")
+    seams = []
+    if profile == "standing_seam":
+        cov = L(rfg["panel_width"])
+        n_sh = math.ceil((rx1 - rx0) / cov - 1e-9)
+        sh_, sw_ = L(rfg["seam_height"]), L(rfg["seam_width"])
+        pan = [[ry0, z_pt(ry0)], [ry1, z_pt(ry1)], [ry1, z_roof(ry1)], [ry0, z_roof(ry0)]]
+        for i in range(n_sh):
+            a = rx0 + i * cov
+            b = min(rx1, a + cov)
+            B.add("roof", "Roofing panel", Prism("x", pan, a, b), material=mat_r, grain=1, length=(ry1 - ry0) * c_,
+                  tags={"roofing"})
+            if i:
+                seams.append(a)
+        spoly = [[ry0, z_roof(ry0)], [ry1, z_roof(ry1)], [ry1, z_roof(ry1) + sh_ * c_], [ry0, z_roof(ry0) + sh_ * c_]]
+        for sx in seams:
+            B.add("roof", "Standing seam", Prism("x", spoly, sx - sw_ / 2, sx + sw_ / 2), material=mat_r, grain=1,
+                  tags={"roofing", "seam"})
+    else:
+        cov = L(rfg["coverage_width"])
+        n_sh = math.ceil((rx1 - rx0) / cov - 1e-9)
+        for i in range(n_sh):
+            a = rx0 + i * cov
+            b = min(rx1, a + cov)
+            B.add("roof", "Roofing sheet", CorrugatedSheet(a, b, ry0, ry1, z_pt(ry0), s_, L(rfg["profile_pitch"]),
+                                                           L(rfg["profile_depth"])),
+                  material=mat_r, grain=1, length=(ry1 - ry0) * c_, tags={"roofing"})
     k.update(roof_x=(rx0, rx1), roof_y=(ry0, ry1), roof_sheets=n_sh, roof_sheet_len=(ry1 - ry0) * c_,
-             fascia=(fas.t, fas.w), rake=(rb, rf))
+             fascia=(fas.t, fas.w), rake=(rb, rf), seams=seams, roof_profile=profile, substrate=substrate)
 
     # ---------------------------------------------------------------- deck
     dk_rim, dk_j = B.s(deck["rim"]), B.s(deck["joist"])
@@ -734,41 +781,78 @@ def build(cfg: dict) -> Model:
     casing(sides[win_wall][0], f"siding.{win_wall}", wo, sill=True)
 
     # ---------------------------------------------------------------- door leaf
-    dcl = L(dr["clearance"])
-    du0, du1 = do["u0"] + dcl, do["u1"] - dcl
-    dv0, dv1 = FF + 0.5, do["v1"] - dcl
-    nb = int(dr.get("boards", 3))
-    dbw = (du1 - du0) / nb
-    for i in range(nb):
-        B.add("door", "Door board", front.box(du0 + i * dbw, dv0, du0 + (i + 1) * dbw, dv1, 0, tb), sd["board"], grain=2,
-              tags={"door"})
-    zb = B.s("door_brace") if "door_brace" in B.stock else trk
-    zk = "door_brace" if "door_brace" in B.stock else sd["trim"]
-    rails_v = [(dv0 + 6, dv0 + 6 + zb.w), (dv1 - 6 - zb.w, dv1 - 6)]
-    for rv0, rv1 in rails_v:
-        B.add("door", "Z-brace rail", front.box(du0 + 1, rv0, du1 - 1, rv1, -zb.t, 0), zk, grain=1, tags={"door"})
-    hinge_hi = dr.get("hinge_side", "right") == "right"     # as seen from outside: right = +y
-    ub_, ut_ = (du1 - 1, du0 + 1) if hinge_hi else (du0 + 1, du1 - 1)
-    P = np.array([ub_, rails_v[0][1]])
-    Q = np.array([ut_, rails_v[1][0]])
-    dvec = (Q - P) / np.linalg.norm(Q - P)
-    nrm = np.array([-dvec[1], dvec[0]]) * zb.w / 2
-    band = [P - 20 * dvec - nrm, Q + 20 * dvec - nrm, Q + 20 * dvec + nrm, P - 20 * dvec + nrm]
-    poly = clip2d(band, du0 + 1, rails_v[0][1], du1 - 1, rails_v[1][0])
-    B.add("door", "Z-brace diagonal", front.prism(poly, -zb.t, 0), zk, grain=None, length=float(np.linalg.norm(Q - P)),
-          tags={"door"})
-    hu = du1 if hinge_hi else du0
-    for hv in (rails_v[0][0] + zb.w / 2, 0.5 * (dv0 + dv1), rails_v[1][0] + zb.w / 2):
-        a, b = (hu - 10, hu + 1.0) if hinge_hi else (hu - 1.0, hu + 10)
-        B.add("door", "Strap hinge", front.box(a, hv - 0.6, b, hv + 0.6, tb, tb + 0.1), material="steel",
+    if prehung:
+        jt = 0.75
+        fu0, fu1 = do["u0"] + 0.25, do["u1"] - 0.25           # frame outside, 1/4" shim space each side
+        fv1 = do["v1"] - 0.5
+        dfm = dr.get("frame_material", "window_frame")
+        jd0, jd1 = -st_d, tb                                   # jamb depth: studs + siding (4-1/2")
+        for a, b in ((fu0, fu0 + jt), (fu1 - jt, fu1)):
+            B.add("door", "Door jamb", front.box(a, FF, b, fv1, jd0, jd1), material=dfm, tags={"door"})
+        B.add("door", "Door head jamb", front.box(fu0, fv1 - jt, fu1, fv1, jd0, jd1), material=dfm, tags={"door"})
+        B.add("door", "Door sill", front.box(fu0, FF, fu1, FF + 1.0, jd0, jd1 + 1.25), material="steel",
               tags={"door", "hardware"})
-    lu = du0 + 2 if hinge_hi else du1 - 2
-    B.add("door", "Thumb latch", front.box(lu - 0.6, FF + 38, lu + 0.6, FF + 44, tb, tb + 0.4), material="steel",
-          tags={"door", "hardware"})
-    if dr.get("moon_cutout", True):
-        cres = crescent(3.4, 2.9, (1.4, 0.8)) + np.array([0.5 * (du0 + du1), dv1 - 13])
-        B.add("door", "Crescent cut-out", front.prism(cres, tb - 0.02, tb + 0.03), material="void", tags={"door", "void"})
+        du0, du1 = fu0 + jt + 0.125, fu1 - jt - 0.125
+        dv0, dv1 = FF + 1.25, fv1 - jt - 0.125
+        slab_t = L(dr.get("slab_thickness", 1.75))
+        s0, s1 = -st_d, -st_d + slab_t                         # in-swing: slab against the exterior stop
+        dmat = dr.get("material", "door_fiberglass")
+        B.add("door", "Door slab", front.box(du0, dv0, du1, dv1, s0, s1), material=dmat, tags={"door"})
+        # two-panel face, both sides (shallow relief)
+        st_w, top_r, mid_r, bot_r = 4.75, 4.75, 7.0, 9.0
+        vm = dv0 + (dv1 - dv0) * 0.42
+        for (pv0, pv1) in ((dv0 + bot_r, vm - mid_r / 2), (vm + mid_r / 2, dv1 - top_r)):
+            for dd0, dd1 in ((s1, s1 + 0.06), (s0 - 0.06, s0)):
+                B.add("door", "Door panel", front.box(du0 + st_w, pv0, du1 - st_w, pv1, dd0, dd1), material=dmat,
+                      tags={"door"})
+        lu = du0 + 2.6 if hinge_hi else du1 - 2.6              # latch side
+        for dd0, dd1 in ((s1, s1 + 2.6), (s0 - 2.6, s0)):
+            B.add("door", "Lever handle", front.box(lu - 1.1, FF + 35, lu + 1.1, FF + 37.5, dd0, dd1), material="steel",
+                  tags={"door", "hardware"})
+            B.add("door", "Deadbolt", front.box(lu - 1.0, FF + 41, lu + 1.0, FF + 43, dd0, dd0 + 0.6 if dd0 == s1
+                                                  else dd1), material="steel", tags={"door", "hardware"})
+        hu = du1 - 0.6 if hinge_hi else du0 + 0.6
+        for hv in (dv0 + 10, 0.5 * (dv0 + dv1), dv1 - 7):
+            B.add("door", "Hinge", front.box(hu - 0.6, hv - 2, hu + 0.6, hv + 2, s0 - 0.12, s0), material="steel",
+                  tags={"door", "hardware"})
+    else:
+        dcl = L(dr["clearance"])
+        du0, du1 = do["u0"] + dcl, do["u1"] - dcl
+        dv0, dv1 = FF + 0.5, do["v1"] - dcl
+        nb = int(dr.get("boards", 3))
+        dbw = (du1 - du0) / nb
+        for i in range(nb):
+            B.add("door", "Door board", front.box(du0 + i * dbw, dv0, du0 + (i + 1) * dbw, dv1, 0, tb), sd["board"],
+                  grain=2, tags={"door"})
+        zb = B.s("door_brace") if "door_brace" in B.stock else trk
+        zk = "door_brace" if "door_brace" in B.stock else sd["trim"]
+        rails_v = [(dv0 + 6, dv0 + 6 + zb.w), (dv1 - 6 - zb.w, dv1 - 6)]
+        for rv0, rv1 in rails_v:
+            B.add("door", "Z-brace rail", front.box(du0 + 1, rv0, du1 - 1, rv1, -zb.t, 0), zk, grain=1, tags={"door"})
+        ub_, ut_ = (du1 - 1, du0 + 1) if hinge_hi else (du0 + 1, du1 - 1)
+        P = np.array([ub_, rails_v[0][1]])
+        Q = np.array([ut_, rails_v[1][0]])
+        dvec = (Q - P) / np.linalg.norm(Q - P)
+        nrm = np.array([-dvec[1], dvec[0]]) * zb.w / 2
+        band = [P - 20 * dvec - nrm, Q + 20 * dvec - nrm, Q + 20 * dvec + nrm, P - 20 * dvec + nrm]
+        poly = clip2d(band, du0 + 1, rails_v[0][1], du1 - 1, rails_v[1][0])
+        B.add("door", "Z-brace diagonal", front.prism(poly, -zb.t, 0), zk, grain=None,
+              length=float(np.linalg.norm(Q - P)), tags={"door"})
+        hu = du1 if hinge_hi else du0
+        for hv in (rails_v[0][0] + zb.w / 2, 0.5 * (dv0 + dv1), rails_v[1][0] + zb.w / 2):
+            a, b = (hu - 10, hu + 1.0) if hinge_hi else (hu - 1.0, hu + 10)
+            B.add("door", "Strap hinge", front.box(a, hv - 0.6, b, hv + 0.6, tb, tb + 0.1), material="steel",
+                  tags={"door", "hardware"})
+        lu = du0 + 2 if hinge_hi else du1 - 2
+        B.add("door", "Thumb latch", front.box(lu - 0.6, FF + 38, lu + 0.6, FF + 44, tb, tb + 0.4), material="steel",
+              tags={"door", "hardware"})
+        if dr.get("moon_cutout", False):
+            cres = crescent(3.4, 2.9, (1.4, 0.8)) + np.array([0.5 * (du0 + du1), dv1 - 13])
+            B.add("door", "Crescent cut-out", front.prism(cres, tb - 0.02, tb + 0.03), material="void",
+                  tags={"door", "void"})
     k["door_leaf"] = (du0, du1, dv0, dv1, hinge_hi)
+    k["door_swing"] = dr.get("swing", "out" if not prehung else "in")
+    k["door_prehung"] = prehung
 
     # ---------------------------------------------------------------- window unit
     wf = sides[win_wall][0]
@@ -809,6 +893,8 @@ def build(cfg: dict) -> Model:
                         continue
                     if any(p0 - vr - 0.5 < vy < p1 + vr + 0.5 for p0, p1 in purlins):
                         continue
+                    if any(sx - vr - 2.0 < vx < sx + vr + 2.0 for sx in seams):
+                        continue
                     score = vx + 0.35 * (yi1 - vy)
                     if best is None or score < best[0]:
                         best = (score, float(vx), float(vy))
@@ -826,6 +912,112 @@ def build(cfg: dict) -> Model:
             k["vent"] = (vx, vy, vr, vtop)
         else:
             k["vent"] = None
+
+    # ---------------------------------------------------------------- electrical, lights, room vent
+    el = cfg.get("electrical", {})
+    k["electrical"] = None
+    latch_hi = not hinge_hi
+    do = k["door"]
+
+    def rafter_bay(xc):
+        bays = [(a + raf.t, b) for a, b in zip(raf_x, raf_x[1:]) if b - a > raf.t + 1]
+        return min(bays, key=lambda ab: abs(0.5 * (ab[0] + ab[1]) - xc))
+
+    def ceiling_light(tag, xc, desc):
+        a, b = rafter_bay(xc)
+        ya, yb = W / 2 - 2.75, W / 2 + 2.75
+        bpoly = [[ya, z_rb(ya)], [yb, z_rb(yb)], [yb, z_rb(yb) + 1.5 * c_], [ya, z_rb(ya) + 1.5 * c_]]
+        B.add("electrical", "Fixture block", Prism("x", bpoly, a, b), roof["rafter"], grain=0,
+              note="2x6 flat between rafters for light fixture", tags={"framing", "electrical"})
+        xm, zb_ = 0.5 * (a + b), z_rb(W / 2)
+        B.add("electrical", f"Light {tag}", Tube(xm, W / 2, 2.9, 0, zb_ - 1.0, zb_ + 0.1), material="fixture",
+              tags={"electrical", "hardware", "light"})
+        B.add("electrical", f"Light {tag} globe", Tube(xm, W / 2, 2.4, 0, zb_ - 4.5, zb_ - 1.0), material="fixture_globe",
+              tags={"electrical", "hardware", "light"})
+        return dict(tag=tag, kind="light", x=xm, y=W / 2, z=zb_ - 4.5, desc=desc)
+
+    if el.get("enabled", False):
+        dev = []
+        swh = L(el.get("switch_height", 48))
+        rhi = L(el.get("receptacle_height_interior", 44))
+        rhe = L(el.get("receptacle_height_exterior", 20))
+        # interior switch S1: inside face of the front wall, latch side of the door
+        u1_ = do["u1"] + 3 * st_t + 1.75 if latch_hi else do["u0"] - 3 * st_t - 1.75
+        B.add("electrical", "Switch S1", front.box(u1_ - 1.4, FF + swh - 2.25, u1_ + 1.4, FF + swh + 2.25, -st_d - 0.3,
+                                                   -st_d), material="device", tags={"electrical", "hardware"})
+        dev.append(dict(tag="S1", kind="switch", x=D - st_d, y=u1_, z=FF + swh, controls="L1",
+                        desc=el.get("switch", "Single-pole switch")))
+        # interior receptacle R1: latch-side wall near the front corner
+        wall_r = sides["right" if latch_hi else "left"][0]
+        xr = D - st_d - 9
+        B.add("electrical", "Receptacle R1", wall_r.box(xr - 1.4, FF + rhi - 2.25, xr + 1.4, FF + rhi + 2.25, -st_d - 0.3,
+                                                        -st_d), material="device", tags={"electrical", "hardware"})
+        dev.append(dict(tag="R1", kind="receptacle", x=xr, y=(W - st_d) if latch_hi else st_d, z=FF + rhi,
+                        desc=el.get("receptacle_interior", "20 A GFCI receptacle")))
+        # exterior switch S2 + receptacle R2 on a rough-sawn mounting board beside the door (latch side)
+        mb = B.s(el.get("mounting_board", "trim"))
+        ue = do["u1"] + trk.w + 1.5 + mb.w / 2 if latch_hi else do["u0"] - trk.w - 1.5 - mb.w / 2
+        d0 = tb + tbat
+        B.add("electrical", "Mounting board", front.box(ue - mb.w / 2, FF + rhe - 5, ue + mb.w / 2, FF + swh + 5, d0,
+                                                        d0 + mb.t), el.get("mounting_board", "trim"), grain=2,
+              tags={"electrical", "trim"})
+        B.add("electrical", "Switch S2", front.box(ue - 1.6, FF + swh - 2.6, ue + 1.6, FF + swh + 2.6, d0 + mb.t,
+                                                   d0 + mb.t + 2.25), material="wp_box", tags={"electrical", "hardware"})
+        B.add("electrical", "Receptacle R2", front.box(ue - 2.1, FF + rhe - 3.2, ue + 2.1, FF + rhe + 3.2, d0 + mb.t,
+                                                       d0 + mb.t + 3.25), material="wp_box", tags={"electrical", "hardware"})
+        dev.append(dict(tag="S2", kind="switch_wp", x=D + d0 + mb.t, y=ue, z=FF + swh, controls="L2",
+                        desc=el.get("switch_exterior", "Weatherproof single-pole switch")))
+        dev.append(dict(tag="R2", kind="receptacle_wp", x=D + d0 + mb.t, y=ue, z=FF + rhe,
+                        desc=el.get("receptacle_exterior", "20 A WR GFCI receptacle, in-use cover")))
+        # lights
+        dev.append(ceiling_light("L1", 0.5 * (x_bf + D - st_d), el.get("interior_light", "Damp-rated LED ceiling light")))
+        dev.append(ceiling_light("L2", D + DD / 2, el.get("deck_light", "Damp-rated LED deck light")))
+        # service entry: disconnect on the low side wall near the front corner, conduit to grade
+        wl_ = sides["left"][0]
+        xd = D - 10
+        zd = L(el.get("disconnect_height", 36))
+        B.add("electrical", "Mounting board", wl_.box(xd - mb.w / 2, zd - 8, xd + mb.w / 2, zd + 8, d0, d0 + mb.t),
+              el.get("mounting_board", "trim"), grain=2, tags={"electrical", "trim"})
+        B.add("electrical", "Disconnect DS", wl_.box(xd - 2.2, zd - 3.5, xd + 2.2, zd + 3.5, d0 + mb.t, d0 + mb.t + 3.0),
+              material="wp_box", tags={"electrical", "hardware"})
+        cy_ = -(d0 + mb.t + 1.2)
+        B.add("electrical", "Conduit", Tube(xd, cy_, 0.525, 0.41, -L(el.get("burial_depth", 24)), zd - 3.5, segments=24),
+              material="pvc_gray", tags={"electrical", "hardware", "below_grade"})
+        dev.append(dict(tag="DS", kind="disconnect", x=xd, y=cy_, z=zd,
+                        desc=el.get("disconnect", "Weatherproof disconnect switch")))
+        # dedicated service: meter-main pedestal on a PT post, off the low side (utility service ends here)
+        svc = el.get("service", {})
+        if svc.get("type", "pedestal") == "pedestal":
+            px_, py_ = xd + L(svc.get("offset_x", 0)), -L(svc.get("distance", 72))
+            pst = B.s(svc.get("post", "post"))
+            pz0 = -L(svc.get("post_embed", 36))
+            ptop = L(svc.get("post_height", 66))
+            B.add("site", "Service post", Box(px_ - pst.t / 2, py_ - pst.t / 2, pz0, px_ + pst.t / 2, py_ + pst.t / 2, ptop),
+                  svc.get("post", "post"), grain=2, note="set in tamped gravel / concrete", tags={"site", "electrical"})
+            ew, eh, ed = 12.0, 28.0, 5.0
+            ez0 = L(svc.get("meter_center", 60)) - 8
+            fy = py_ + pst.t / 2
+            B.add("site", "Meter-main enclosure", Box(px_ - ew / 2, fy, ez0, px_ + ew / 2, fy + ed, ez0 + eh),
+                  material="wp_box", tags={"site", "electrical", "hardware"})
+            B.add("site", "Meter", Tube(px_, fy + ed, 3.4, 0, ez0 + eh - 11.5, ez0 + eh - 4.5, segments=32), material="glass",
+                  tags={"site", "electrical", "hardware"})
+            for dx_ in (-3.0, 3.0):
+                B.add("site", "Conduit", Tube(px_ + dx_, fy + 2.0, 0.66, 0.52, -L(el.get("burial_depth", 24)), ez0,
+                                              segments=24), material="pvc_gray", tags={"site", "electrical", "below_grade"})
+            dev.append(dict(tag="MP", kind="panel", x=px_, y=fy, z=ez0 + eh / 2,
+                            desc=svc.get("description", "Meter-main pedestal")))
+            k["service"] = dict(x=px_, y=py_, run_ft=(math.hypot(px_ - xd, py_ - cy_) + (ez0 - 0) + (zd + 12)) / 12)
+        k["electrical"] = dict(devices=dev)
+
+    lv = cfg.get("room_vent", {})
+    if lv.get("enabled", False):
+        vw_, vh_ = L(lv.get("width", 12)), L(lv.get("height", 8))
+        yc = W - st_d - vw_ / 2 - 4
+        zc_ = z_rb(yc) - vh_ / 2 - 6
+        B.add("siding.back", "Louver vent", back.box(yc - vw_ / 2, zc_ - vh_ / 2, yc + vw_ / 2, zc_ + vh_ / 2, tb + tbat,
+                                                     tb + tbat + 1.25), material=lv.get("material", "louver"),
+              tags={"hardware", "vent"})
+        k["louver"] = (yc, zc_, vw_, vh_)
 
     # ---------------------------------------------------------------- ground (dirt pad around the pit)
     env = cfg.get("renders", {}).get("environment", {})

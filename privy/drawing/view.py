@@ -71,7 +71,7 @@ class Item:
 
 class View:
     def __init__(self, model, direction, include=None, cut=None, hidden=None, above_grade=None, crop=None,
-                 roof_strips=6.0, grade=True, face_fill=None):
+                 roof_strips=6.0, grade=True, face_fill=None, site=False):
         self.m = model
         self.cfg = model.cfg
         ru, rv, d = (np.array(v, float) for v in DIRS[direction])
@@ -83,6 +83,7 @@ class View:
         self.grade = grade and direction != "top"
         self.above_grade = (cut is None) if above_grade is None else above_grade
         self.face_fill = face_fill
+        self.site = site
         self.items: list[Item] = []
         self.caps = []
         self.hidden = []
@@ -132,7 +133,7 @@ class View:
         if self.cut:
             axis, value, keep = self.cut
         for part in self.m.parts:
-            if not include(part):
+            if not include(part) or ("site" in part.tags and not self.site):
                 continue
             geoms = [(part.geom, ())]
             if isinstance(part.geom, CorrugatedSheet) and roof_strips:

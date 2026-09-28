@@ -3,7 +3,7 @@
   "project": {
     "name": "Skid-Mounted Pit Privy",
     "subtitle": "Relocatable outhouse over a 30\" HDPE pit, with covered deck",
-    "site": "Wooded lot, NC Piedmont (loblolly pine / small oak), red clay subsoil",
+    "site": "Wooded lot, Rockingham County, NC (Piedmont)",
     "owner": "",
     "designer": "",
     "date": "2026-09-28",
@@ -18,7 +18,7 @@
     "deck_live_psf": 40,
     "deck_dead_psf": 8,
     "occupant_point_lb": 300,
-    "note": "NC Piedmont: ASCE 7-16 ground snow about 10-15 psf (15 used); Vult about 115 mph. Screening values only."
+    "note": "Rockingham County, NC: ASCE 7-16 ground snow about 15 psf; Vult about 115 mph. Screening values only."
   },
   "stock": {
     "skid": {
@@ -85,7 +85,8 @@
       "nominal": "4x4",
       "species": "SYP #2",
       "treatment": "PT UC4B ground contact",
-      "material": "treated_lumber"
+      "material": "treated_lumber",
+      "lengths": [96, 120, 144]
     },
     "knee_brace": {
       "nominal": "4x4",
@@ -98,36 +99,36 @@
     "siding_board": {
       "nominal": "1x10",
       "surfacing": "rough",
-      "actual": [1.0, 9.5],
-      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "actual": [1.0, 10.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
       "material": "rough_siding"
     },
     "batten": {
       "nominal": "1x3",
       "surfacing": "rough",
-      "actual": [1.0, 2.5],
-      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "actual": [1.0, 3.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
       "material": "rough_siding"
     },
     "trim": {
       "nominal": "1x4",
       "surfacing": "rough",
-      "actual": [1.0, 3.5],
-      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "actual": [1.0, 4.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
       "material": "rough_trim"
     },
     "fascia": {
       "nominal": "1x6",
       "surfacing": "rough",
-      "actual": [1.0, 5.5],
-      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "actual": [1.0, 6.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
       "material": "rough_trim"
     },
     "door_brace": {
       "nominal": "1x6",
       "surfacing": "rough",
-      "actual": [1.0, 5.5],
-      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "actual": [1.0, 6.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
       "material": "rough_trim"
     },
     "decking": {
@@ -157,6 +158,27 @@
       "size": [48, 96],
       "description": "3/4\" PT plywood",
       "material": "treated_plywood"
+    },
+    "mounting_board": {
+      "nominal": "1x8",
+      "surfacing": "rough",
+      "actual": [1.0, 8.0],
+      "species": "Southern yellow pine, rough-sawn, air-dried",
+      "material": "rough_trim"
+    },
+    "roof_sheathing": {
+      "sheet": true,
+      "thickness": 0.625,
+      "size": [48, 96],
+      "description": "5/8\" CDX plywood roof deck",
+      "material": "cdx_plywood"
+    },
+    "service_post": {
+      "nominal": "6x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4B ground contact",
+      "material": "treated_lumber",
+      "lengths": [96, 120]
     }
   },
   "pit": {
@@ -190,8 +212,8 @@
       "material": "vent_pipe"
     },
     "usage": {
-      "persons": 2,
-      "fraction_of_year": 0.25,
+      "persons": 4,
+      "days_per_year": 25,
       "accumulation_liters_per_person_year": 60,
       "freeboard": 18
     },
@@ -212,9 +234,9 @@
     }
   },
   "building": {
-    "width": 48,
-    "depth": 72,
-    "low_bearing_height": 84,
+    "width": 60,
+    "depth": 84,
+    "low_bearing_height": 90,
     "floor": {
       "joist": "floor_joist",
       "rim": "floor_rim",
@@ -258,7 +280,8 @@
       "lid": true,
       "material": "seat"
     },
-    "joist_clear_to_hole": 2.0
+    "joist_clear_to_hole": 2.0,
+    "front_rail_plies": 2
   },
   "removable_panel": {
     "head_lap": 2,
@@ -269,15 +292,19 @@
     "kick_board": "kick_board"
   },
   "door": {
-    "rough_opening_width": 27,
-    "rough_opening_height": 76,
-    "offset": 0,
-    "hinge_side": "right",
+    "type": "prehung",
+    "description": "Fiberglass prehung exterior door, 2'-6\" x 6'-8\", in-swing, smooth 2-panel, 4-9/16\" jamb",
+    "slab_width": 30,
+    "slab_height": 80,
+    "slab_thickness": 1.75,
+    "rough_opening_allowance": [2, 2.5],
+    "position": "hinge_corner",
+    "hinge_side": "left",
+    "swing": "in",
     "header": {"stock": "header", "plies": 2},
-    "clearance": 0.25,
-    "boards": 3,
-    "moon_cutout": true,
-    "hardware": "(3) 8\" black strap hinges, thumb latch outside, hook & eye inside"
+    "material": "door_fiberglass",
+    "frame_material": "window_frame",
+    "hardware": "Keyed lever + deadbolt, factory hinges, adjustable sill, weatherstrip; exterior casing rough-sawn 1x4"
   },
   "window": {
     "wall": "right",
@@ -305,15 +332,19 @@
     "fascia": "fascia",
     "frieze_blocking": true,
     "roofing": {
-      "description": "29 ga galvanized corrugated steel, 2.67\" x 1/2\" profile, 26\" sheet / 24\" coverage",
-      "coverage_width": 24,
-      "sheet_width": 26,
-      "profile_pitch": 2.67,
-      "profile_depth": 0.5,
-      "eave_overhang": 1.5,
-      "rake_overhang": 1.0,
+      "profile": "standing_seam",
+      "description": "24 ga Galvalume snap-lock standing seam, 16\" panels, 1\" seams, over synthetic underlayment",
+      "panel_width": 16,
+      "seam_height": 1.0,
+      "seam_width": 0.75,
+      "thickness": 0.024,
+      "eave_overhang": 1.0,
+      "rake_overhang": 0.75,
       "material": "galvanized"
-    }
+    },
+    "substrate": "sheathing",
+    "sheathing": "roof_sheathing",
+    "fly_rafters": true
   },
   "deck": {
     "depth": 72,
@@ -440,11 +471,10 @@
       "drawing": {"fill": "#ffffff", "cut": "plywood"}
     },
     "galvanized": {
-      "description": "Galvanized corrugated steel",
-      "base_color": "#b4b9be",
+      "description": "Galvalume (unpainted) standing-seam steel",
+      "base_color": "#b3b8bc",
       "metallic": 1.0,
-      "roughness": 0.3,
-      "two_sided": true,
+      "roughness": 0.28,
       "texture": {"type": "noise", "scale": 10, "contrast": 0.08, "seed": 2},
       "drawing": {"fill": "#f2f2f2", "cut": "steel"}
     },
@@ -608,6 +638,70 @@
       "variation": 0.18,
       "texture": {"type": "noise", "scale": 8, "contrast": 0.4, "seed": 4},
       "drawing": {"fill": "#ffffff", "cut": "wood"}
+    },
+    "door_fiberglass": {
+      "description": "Fiberglass door, factory painted deep green",
+      "base_color": "#34463a",
+      "roughness": 0.4,
+      "specular": 0.5,
+      "drawing": {"fill": "#ffffff", "cut": "solid"}
+    },
+    "cdx_plywood": {
+      "description": "CDX plywood",
+      "base_color": "#b89a6a",
+      "roughness": 0.85,
+      "specular": 0.25,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#9c7f52",
+        "tile": [48, 24],
+        "rings": 3,
+        "contrast": 0.25,
+        "seed": 51
+      },
+      "drawing": {"fill": "#ffffff", "cut": "plywood"}
+    },
+    "device": {
+      "description": "Switch / receptacle plate, ivory",
+      "base_color": "#e9e4d6",
+      "roughness": 0.35,
+      "specular": 0.5,
+      "drawing": {"fill": "#ffffff", "cut": "solid"}
+    },
+    "wp_box": {
+      "description": "Weatherproof box and cover, grey",
+      "base_color": "#7d8286",
+      "roughness": 0.5,
+      "specular": 0.4,
+      "drawing": {"fill": "#ffffff", "cut": "solid"}
+    },
+    "fixture": {
+      "description": "Light fixture body, black",
+      "base_color": "#1d1d1d",
+      "roughness": 0.45,
+      "metallic": 0.6,
+      "drawing": {"fill": "#ffffff", "cut": "steel"}
+    },
+    "fixture_globe": {
+      "description": "Frosted fixture globe",
+      "base_color": "#efeee8",
+      "roughness": 0.25,
+      "specular": 0.5,
+      "drawing": {"fill": "#ffffff", "cut": "solid"}
+    },
+    "pvc_gray": {
+      "description": "Sch 80 PVC conduit, grey",
+      "base_color": "#8e9396",
+      "roughness": 0.4,
+      "specular": 0.4,
+      "drawing": {"fill": "#ffffff", "cut": "hdpe"}
+    },
+    "louver": {
+      "description": "Screened aluminum louver, bronze",
+      "base_color": "#3e3a33",
+      "roughness": 0.5,
+      "metallic": 0.5,
+      "drawing": {"fill": "#e6e6e6", "cut": "steel"}
     }
   },
   "lighting": {
@@ -711,8 +805,53 @@
       "Subterranean termites are active throughout the Piedmont. Keep untreated wood at least 6\" above grade (the siding line is set by building.siding.min_clearance_to_grade), use UC4B for skids and posts, and inspect the skids every year.",
       "Wooded site: keep out from under dead or leaning trees, cut roots cleanly when augering the pit, and leave the pad crowned so leaf-litter runoff drains away.",
       "The pipe is set plumb and level-topped, backfilled with compacted native soil in 6\" lifts. The pit has an open bottom; do not bed it in concrete.",
-      "Relocation: remove the back panel, drag the sled from the skid ends (tow holes provided), insert the flange after positioning. See sheet A-502.",
-      "Screening structural checks are on A-602; the cut list and purchase list are on A-601. This is not a stamped engineered design."
+      "Screening structural checks are on A-602; the cut list and purchase list are on A-601. This is not a stamped engineered design.",
+      "Relocation: turn off the branch breaker at the pedestal, open the disconnect, unhook the feeder at the entry box, remove the back panel and flange, then pull the sled off the pit from the front skid tow holes. See sheets A-502 and E-101.",
+      "Electrical: one 120 V, 20 A GFCI branch circuit from the house panel, installed to the NEC as adopted in NC and inspected by Rockingham County. See E-101."
     ]
+  },
+  "room_vent": {
+    "enabled": true,
+    "width": 12,
+    "height": 8,
+    "material": "louver",
+    "description": "12\" x 8\" screened aluminum louver, high on the back wall (make-up air for the pit vent)"
+  },
+  "electrical": {
+    "enabled": true,
+    "feed": {
+      "source": "Meter-main pedestal MP, 20 A 1-pole GFCI breaker",
+      "volts": 120,
+      "breaker_a": 20,
+      "design_load_a": 12,
+      "max_drop_pct": 3.0
+    },
+    "burial_depth": 24,
+    "switch_height": 48,
+    "receptacle_height_interior": 44,
+    "receptacle_height_exterior": 20,
+    "disconnect_height": 36,
+    "mounting_board": "mounting_board",
+    "switch": "Single-pole 20 A switch (interior light L1)",
+    "switch_exterior": "Single-pole 20 A switch in weatherproof box / cover (deck light L2)",
+    "receptacle_interior": "20 A tamper-resistant GFCI duplex",
+    "receptacle_exterior": "20 A WR + TR GFCI duplex, extra-duty in-use (bubble) cover",
+    "interior_light": "Damp-rated LED flush mount, about 800 lm, 3000-4000 K",
+    "deck_light": "Damp-rated LED barn / jelly-jar light, about 800 lm, 3000 K",
+    "disconnect": "Weatherproof 20 A snap-switch disconnect at the point of entry (NEC 225.36); unhook point for relocation",
+    "wiring": "UF-B with ground (damp location), stapled in stud bays; Sch 80 PVC where exposed below 8'",
+    "service": {
+      "type": "pedestal",
+      "description": "100 A meter-main combination, NEMA 3R, with branch spaces (utility-approved meter socket)",
+      "rating_a": 100,
+      "utility": "Duke Energy or the local EMC",
+      "distance": 72,
+      "offset_x": 0,
+      "post": "service_post",
+      "post_embed": 36,
+      "post_height": 66,
+      "meter_center": 60,
+      "grounding": "(2) 5/8\" x 8' copper-clad rods at least 6' apart, #6 Cu GEC, acorn clamps"
+    }
   }
 }

@@ -17,7 +17,7 @@ design/privy.json  ──►  privy.model  ──►  drawing/ (SVG sheets) ─�
 
 ![Deck and window side](docs/renders/hero.jpg)
 
-The latest drawing set is in [`docs/privy.pdf`](docs/privy.pdf) (17 sheets, 11x17), with the cut list in
+The latest drawing set is in [`docs/privy.pdf`](docs/privy.pdf) (18 sheets, 11x17), with the cut list in
 [`docs/cut_list.csv`](docs/cut_list.csv).
 
 | Back, panel removed | Cutaway through the pit |
@@ -28,15 +28,17 @@ The latest drawing set is in [`docs/privy.pdf`](docs/privy.pdf) (17 sheets, 11x1
 
 | | |
 |---|---|
-| Pit | 30" ID (36" OD) dual-wall corrugated HDPE pipe, set vertically 36" into the ground, open bottom |
-| Building | 4'-0" x 6'-0" framed, 2x4 @ 24" o.c., rough-sawn 1x10 board-and-batten |
-| Foundation | two 4x6 PT (UC4B) skids on edge, chamfered both ends, with tow holes. Building and deck ride on one sled |
-| Bench | full-width bench over the pipe, seat hole inside the pipe ID. A flange plate + collar + EPDM skirt closes pipe to bench after placement |
-| Removable panel | the back wall below the bench is a lagged panel. Remove it and the privy slides back over the standing pipe: the pipe passes between the skids and under the 4x6 bench header |
-| Roof | single slope 3:12, draining away from the door and the pit. 2x6 rafters on continuous 4x6 beams, 2x4 purlins, 29 ga corrugated steel |
+| Pit | 30" ID (36" OD) dual-wall corrugated HDPE pipe, set vertically 36" into the ground, open bottom. About 55 gal usable, roughly 12.7 years at 4 people x 25 days/yr |
+| Building | 5'-0" x 7'-0" framed, 2x4 @ 24" o.c., rough-sawn SYP 1x10 board-and-batten (full dimension), 6" clearance to grade |
+| Foundation | two 4x6 PT (UC4B) skids on edge, 14' long, chamfered both ends, with tow holes. Building and deck ride on one sled |
+| Bench | full-width bench over the pipe, seat hole inside the pipe ID. A flange plate, collar and EPDM skirt close the gap between pipe and bench after placement |
+| Removable panel | the back wall below the bench is a lagged panel with a PT kick board. Remove it and the privy slides back over the standing pipe: the pipe passes between the skids and under the 4x6 bench header |
+| Door | 2'-6" x 6'-8" fiberglass prehung exterior door, in-swing, hinged at the low-side corner so the leaf folds flat against the side wall |
+| Roof | single slope 3:12, draining away from the door and the pit. 2x6 rafters on continuous 4x6 beams, 5/8" plywood deck, fly rafters at the rakes, 24 ga Galvalume snap-lock standing seam |
 | Window | 18" x 27" double-hung, sill 4'-8" above the floor, on the high side wall |
-| Deck | 4'-0" x 6'-0" in front of the door, under the same roof, two 4x4 posts with knee braces |
-| Vent | 4" PVC from the flange up through the roof |
+| Deck | 5'-0" x 6'-0" in front of the door, under the same roof, two 4x4 posts with knee braces |
+| Vent | 4" PVC from the flange up through the roof, plus a screened louver high on the back wall for make-up air |
+| Electrical | own 100 A meter-main pedestal on a PT post beside the privy (no house on site), one 20 A GFCI circuit to a disconnect at the privy; GFCI receptacle + switch and ceiling light inside, WR GFCI receptacle + switch and deck light outside |
 
 ## Usage
 
@@ -47,6 +49,7 @@ python -m privy build --no-render         # drawings only (reuses existing rende
 python -m privy build --quality 0.35      # quick draft renders (~1 min; full quality is ~2-3 min per view on 4 cores)
 python -m privy build --only A-101 A-301  # just some sheets
 python -m privy build --strict            # exit 1 if a design check fails
+python -m privy fmt design/privy.json     # re-format the JSON after editing
 ```
 
 Outputs: `build/privy.pdf`, `build/svg/*.svg`, `build/renders/*.png`, `build/cut_list.csv`, `build/checks.json`.
@@ -70,6 +73,7 @@ the high side, and z points up with z = 0 at grade.
 | `lighting` | sun azimuth/elevation (plan angle from +x toward +y), sky turbidity and albedo, exposure, tone map |
 | `renders.environment` | dirt pad, surrounding forest floor, trees (species with count, height, trunk diameter, form `pine`/`oak`, bark and foliage materials), understory shrubs, backdrop woods. Placement is seeded and keeps a clear corridor to every camera |
 | `renders.views` | cameras (orbit or absolute), optional `hide_tags` (e.g. `removable_panel`), `cutaway` plane, and a per-view `lighting` override |
+| `electrical` | service pedestal (rating, location, grounding), branch feed (breaker, design load, voltage-drop limit), device heights and descriptions |
 | `drawings` | sheet size, theme (`white` / `blueprint`), plan cut height, allowed scales, general notes |
 
 The schema is in `schema/privy.schema.json` and is validated on every build. Derived geometry is computed, not

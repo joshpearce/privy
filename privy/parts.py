@@ -119,7 +119,7 @@ class Model:
             out.append(p)
         return out
 
-    def bbox(self, parts=None, exclude_tags=("ground",)):
+    def bbox(self, parts=None, exclude_tags=("ground", "site")):
         parts = parts if parts is not None else [p for p in self.parts if not (p.tags & set(exclude_tags))]
         los, his = zip(*(p.bbox() for p in parts))
         return np.min(los, 0), np.max(his, 0)

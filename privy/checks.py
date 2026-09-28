@@ -99,6 +99,15 @@ def run_checks(m):
     cf = (D - k["st_d"]) - k["x_bf"]
     chk("Use", "Clear floor in front of bench", fmt_ftin(cf), '>= 24" (IPC min 21")', cf >= 24,
         "knee room for a seated adult")
+    if k.get("door_swing") == "in":
+        du0, du1 = k["door_leaf"][:2]
+        leaf = du1 - du0
+        clr = cf - leaf - 1.0
+        chk("Use", "In-swing door clears bench when open 90 deg", fmt_in(clr), '>= 2"', clr >= 2.0,
+            "leaf folds against the hinge-side wall")
+        side = (W - 2 * k["st_d"]) - (k["door"]["u1"] - k["door"]["u0"]) - 3 * 1.5
+        chk("Use", "Standing room beside the swing (latch side)", fmt_in(side), '>= 12"', side >= 12,
+            "stand clear of the leaf while closing the door")
     col = k["flange_z"][0] - k["collar_z0"]
     chk("Fit", "Flange collar height (plate to pipe top less gap)", fmt_in(col), '>= 0', col >= 0)
     z_rb, pv = k["z_rb"], S[cfg["building"]["walls"]["plate"]].t * k["c"]
@@ -123,9 +132,15 @@ def run_checks(m):
         hk = hr - L(kb["leg"])
         chk("Use", "Headroom at knee-brace foot (low side)", fmt_ftin(hk), "info", None, "braces are at the deck corners")
     plen = max(p[3] - p[2] for p in k["posts"])
-    chk("Stock", "Deck post length (from 8' stock)", fmt_ftin(plen), "<= 8'-0\"", plen <= 96)
+    pmax = max(S[cfg["deck"]["post"]].lengths)
+    pstock = min((x for x in S[cfg["deck"]["post"]].lengths if x >= plen), default=None)
+    chk("Stock", "Deck post length", fmt_ftin(plen), f"<= {fmt_ftin(pmax)} stock", plen <= pmax,
+        f"cut from {fmt_ftin(pstock)}" if pstock else "")
     studs = [p.length for p in m.parts if p.name in ("Stud", "King stud") and p.length]
-    chk("Stock", "Longest stud (92-5/8\" precut or 8')", fmt_ftin(max(studs)), "<= 8'-0\"", max(studs) <= 96)
+    sl = S[cfg["building"]["walls"]["stud"]].lengths
+    sstock = min((x for x in sl if x >= max(studs)), default=None)
+    chk("Stock", "Longest stud", fmt_ftin(max(studs)), f"<= {fmt_ftin(max(sl))} stock", max(studs) <= max(sl),
+        f"cut from {fmt_ftin(sstock)}" if sstock else "")
     skl = k["skid_x1"] - k["skid_x0"]
     chk("Stock", "Skid length", fmt_ftin(skl), "<= 16'-0\"", skl <= 192)
     bm = k["beam_w"] * k["slope"]
@@ -171,9 +186,18 @@ def run_checks(m):
     span = W - k["beam_w"]
     bend("Rafter, snow + dead", roof["rafter"], span, (pf + Dr) * sp / 12, CD=1.15, Cr=1.15, defl_lim=180,
          w_defl=pf * sp / 12)
-    psp = L(roof["purlin_spacing"])
-    bend("Purlin (flat) between rafters", roof["purlin"], max(np.diff(k["rafter_x"])),
-         (pf + Dr) * psp / 12, CD=1.15, Cr=1.15, defl_lim=180, flat=True)
+    if k.get("substrate", "purlins") == "purlins":
+        psp = L(roof["purlin_spacing"])
+        bend("Purlin (flat) between rafters", roof["purlin"], max(np.diff(k["rafter_x"])),
+             (pf + Dr) * psp / 12, CD=1.15, Cr=1.15, defl_lim=180, flat=True)
+    else:
+        sp_max = max(np.diff(k["rafter_x"]))
+        tsh = S[roof["sheathing"]].t
+        ok = sp_max <= (24 if tsh >= 0.59 else 16) + 0.01
+        chk("Structure", "Roof sheathing span (APA 40/20 for 5/8\", 32/16 for 1/2\")", fmt_in(sp_max),
+            '<= 24" (5/8") / 16" (1/2")', ok, "use H-clips at unsupported edges")
+        rk = max(L(roof["rake_back"]), L(roof["rake_front"]))
+        chk("Framing", "Rake overhang carried by fly rafter + sheathing", fmt_in(rk), '<= 12"', rk <= 12)
     trib = (W - k["beam_w"]) / 2 + max(L(roof["overhang_low"]), L(roof["overhang_high"]))
     bl = k["DD"] - S[cfg["deck"]["post"]].t / 2
     bend("Roof beam over deck", roof["beam"], bl, (pf + Dr) * trib / 12, CD=1.15, defl_lim=240, w_defl=pf * trib / 12)
@@ -200,15 +224,43 @@ def run_checks(m):
     vol_in3 = math.pi * (ID / 2) ** 2 * max(depth, 0)
     gal, liters = vol_in3 / 231.0, vol_in3 * 0.0163871
     k["pit_volume_gal"] = gal
-    rate = use.get("accumulation_liters_per_person_year", 60) * use.get("persons", 2) * use.get("fraction_of_year", 0.25)
+    frac = use["days_per_year"] / 365.0 if "days_per_year" in use else use.get("fraction_of_year", 0.25)
+    rate = use.get("accumulation_liters_per_person_year", 60) * use.get("persons", 2) * frac
     yrs = liters / rate if rate > 0 else None
     k["pit_years"] = yrs
     chk("Pit", f"Usable pit volume (to {fmt_in(fb)} below grade)", f"{gal:.0f} gal ({liters:.0f} L)", "info", None,
         "move the privy when solids reach the freeboard line")
     if yrs:
         chk("Pit", "Estimated service life before relocation", f"{yrs:.1f} yr", "info", None,
-            f"{use.get('persons', 2)} persons, {use.get('fraction_of_year', 0.25):.0%} of the year, "
+            f"{use.get('persons', 2)} persons x {frac * 365:.0f} days/yr, "
             f"{use.get('accumulation_liters_per_person_year', 60)} L/person-yr (dry pit, WHO range 40-90)")
+
+    # ------------------------------------------------------------ electrical
+    el = cfg.get("electrical", {})
+    if el.get("enabled"):
+        fd = el.get("feed", {})
+        Lft = round(k["service"]["run_ft"] + 5) if k.get("service") else fd.get("length_ft", 100)
+        amps, volts = fd.get("design_load_a", 12), fd.get("volts", 120)
+        lim = fd.get("max_drop_pct", 3.0)
+        ohm = {14: 3.14, 12: 1.98, 10: 1.24, 8: 0.778, 6: 0.491}      # copper, ohm / 1000 ft (NEC Ch.9 T8)
+        pick = None
+        for awg in (12, 10, 8, 6):
+            vd = 2 * Lft * amps * ohm[awg] / 1000.0
+            if 100 * vd / volts <= lim:
+                pick = (awg, vd)
+                break
+        awg, vd = pick or (6, 2 * Lft * amps * ohm[6] / 1000)
+        k["feed_awg"] = awg
+        chk("Electrical", f"Feeder voltage drop, {Lft} ft at {amps} A", f"{100 * vd / volts:.1f}% with {awg} AWG Cu",
+            f"<= {lim:g}%", 100 * vd / volts <= lim, f"use {awg} AWG UF-B (20 A breaker); 12 AWG minimum")
+        chk("Electrical", "GFCI on all receptacles (NEC 210.8)", "GFCI breaker + GFCI devices", "required", True,
+            "outdoor receptacle also WR with in-use cover (406.9)")
+        chk("Electrical", "Disconnect at the building (NEC 225.31/.36)", "WP snap switch at entry", "required", True)
+        svc = el.get("service", {})
+        if k.get("service"):
+            amp = svc.get("rating_a", 100)
+            chk("Electrical", "Service rating (NEC 230.79)", f"{amp} A meter-main", ">= 60 A (230.79(D))", amp >= 60,
+                "single small building; 100 A gives room for a later circuit")
 
     # ------------------------------------------------------------ weight, bearing, towing
     wt, by = estimate_weight(m)
