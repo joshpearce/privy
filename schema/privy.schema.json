@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/privy.schema.json",
+  "title": "Parametric privy design",
+  "description": "Source of truth for the privy drawings, cut list, checks and renderings. Lengths are inches (number) or feet-inch strings such as \"6'-2 1/2\\\"\".",
+  "type": "object",
+  "required": ["project", "loads", "stock", "pit", "foundation", "building", "bench", "removable_panel", "door", "window",
+               "roof", "deck", "materials", "lighting", "renders", "drawings"],
+  "$defs": {
+    "len": {"oneOf": [{"type": "number"}, {"type": "string", "pattern": "^[-0-9 ./'\"ftin]+$"}]},
+    "stockRef": {"type": "string"},
+    "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+    "lumber": {
+      "type": "object",
+      "required": ["nominal", "material"],
+      "properties": {
+        "nominal": {"type": "string", "pattern": "^\\d+(/\\d+)?x\\d+$"},
+        "surfacing": {"enum": ["S4S", "rough"]},
+        "actual": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+        "species": {"type": "string"},
+        "treatment": {"type": "string"},
+        "material": {"type": "string"},
+        "lengths": {"type": "array", "items": {"type": "number"}}
+      }
+    },
+    "sheet": {
+      "type": "object",
+      "required": ["sheet", "thickness", "material"],
+      "properties": {
+        "sheet": {"const": true},
+        "thickness": {"type": "number"},
+        "size": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+        "description": {"type": "string"},
+        "material": {"type": "string"}
+      }
+    },
+    "material": {
+      "type": "object",
+      "properties": {
+        "type": {"enum": ["principled", "glass"]},
+        "description": {"type": "string"},
+        "base_color": {"$ref": "#/$defs/color"},
+        "roughness": {"type": "number", "minimum": 0, "maximum": 1},
+        "specular": {"type": "number", "minimum": 0, "maximum": 1},
+        "metallic": {"type": "number", "minimum": 0, "maximum": 1},
+        "two_sided": {"type": "boolean"},
+        "ior": {"type": "number"},
+        "tint": {"$ref": "#/$defs/color"},
+        "variation": {"type": "number", "minimum": 0, "maximum": 0.5},
+        "texture": {"type": "object", "required": ["type"], "properties": {"type": {"type": "string"}}},
+        "drawing": {
+          "type": "object",
+          "properties": {
+            "fill": {"$ref": "#/$defs/color"},
+            "cut": {"enum": ["wood", "board", "plywood", "steel", "hdpe", "solid", "earth", "glass"]}
+          }
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "position": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "target": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "fov_deg": {"type": "number"},
+        "orbit": {
+          "type": "object",
+          "properties": {"azimuth_deg": {"type": "number"}, "elevation_deg": {"type": "number"},
+                         "distance_scale": {"type": "number"}}
+        },
+        "target_offset": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}
+      }
+    }
+  },
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {"name": {"type": "string"}, "subtitle": {"type": "string"}, "site": {"type": "string"},
+                     "owner": {"type": "string"}, "designer": {"type": "string"}, "date": {"type": "string"},
+                     "revision": {"type": "string"}}
+    },
+    "loads": {
+      "type": "object",
+      "required": ["ground_snow_psf", "roof_dead_psf", "floor_live_psf", "deck_live_psf", "occupant_point_lb"]
+    },
+    "stock": {"type": "object", "additionalProperties": {"oneOf": [{"$ref": "#/$defs/lumber"}, {"$ref": "#/$defs/sheet"}]}},
+    "pit": {
+      "type": "object",
+      "required": ["pipe", "flange", "vent"],
+      "properties": {
+        "pipe": {
+          "type": "object",
+          "required": ["inside_diameter", "outside_diameter", "bury_depth", "slide_clearance_under_header"],
+          "properties": {
+            "inside_diameter": {"$ref": "#/$defs/len"}, "outside_diameter": {"$ref": "#/$defs/len"},
+            "bury_depth": {"$ref": "#/$defs/len"}, "slide_clearance_under_header": {"$ref": "#/$defs/len"},
+            "clearance_to_back_wall": {"$ref": "#/$defs/len"}, "lateral_offset": {"$ref": "#/$defs/len"},
+            "corrugation_pitch": {"$ref": "#/$defs/len"}, "corrugation_depth": {"$ref": "#/$defs/len"}
+          }
+        },
+        "usage": {
+          "type": "object",
+          "properties": {"persons": {"type": "number"}, "fraction_of_year": {"type": "number"},
+                         "accumulation_liters_per_person_year": {"type": "number"},
+                         "freeboard": {"$ref": "#/$defs/len"}}
+        }
+      }
+    },
+    "foundation": {
+      "type": "object",
+      "properties": {
+        "skids": {
+          "type": "object",
+          "required": ["stock", "orientation"],
+          "properties": {"orientation": {"enum": ["on_edge", "flat"]}}
+        }
+      }
+    },
+    "building": {
+      "type": "object",
+      "required": ["width", "depth", "low_bearing_height", "floor", "walls", "siding"],
+      "properties": {"width": {"$ref": "#/$defs/len"}, "depth": {"$ref": "#/$defs/len"},
+                     "low_bearing_height": {"$ref": "#/$defs/len"}}
+    },
+    "window": {"type": "object", "properties": {"wall": {"enum": ["right"]}}},
+    "door": {"type": "object", "properties": {"hinge_side": {"enum": ["left", "right"]}}},
+    "roof": {"type": "object", "required": ["pitch", "rafter", "beam", "purlin", "roofing"]},
+    "deck": {"type": "object", "required": ["depth", "joist", "rim", "decking", "post"]},
+    "materials": {"type": "object", "additionalProperties": {"$ref": "#/$defs/material"}},
+    "lighting": {
+      "type": "object",
+      "required": ["sun", "sky"],
+      "properties": {
+        "sun": {"type": "object", "required": ["azimuth_deg", "elevation_deg"]},
+        "sky": {"type": "object"},
+        "exposure_ev": {"type": "number"},
+        "tonemap": {"enum": ["aces", "clamp", "none"]}
+      }
+    },
+    "renders": {
+      "type": "object",
+      "properties": {
+        "defaults": {"type": "object"},
+        "environment": {"type": "object"},
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "camera"],
+            "properties": {
+              "name": {"type": "string"}, "title": {"type": "string"}, "camera": {"$ref": "#/$defs/camera"},
+              "hide_tags": {"type": "array", "items": {"type": "string"}},
+              "cutaway": {"type": "object", "properties": {"axis": {"enum": ["x", "y", "z"]},
+                                                           "keep": {"enum": ["high", "low"]}}}
+            }
+          }
+        }
+      }
+    },
+    "drawings": {
+      "type": "object",
+      "properties": {
+        "sheet": {"type": "object"},
+        "theme": {"enum": ["white", "blueprint"]},
+        "plan_cut_height": {"$ref": "#/$defs/len"},
+        "scales": {"type": "array", "items": {"type": "string"}},
+        "general_notes": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
