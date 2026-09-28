@@ -24,7 +24,7 @@ import time
 import numpy as np
 from PIL import Image
 
-from ..geometry import EPS, PLANE, Clipped, CorrugatedSheet, ccw, clip_triangles, ear_clip, lift
+from ..geometry import EPS, Clipped, CorrugatedSheet, ccw, clip_triangles, ear_clip, lift
 from . import textures as T
 from .trees import place_trees, tree_geometry
 
@@ -434,7 +434,7 @@ def build_scene(model, view, mats: Materials, tmp: str, size, spp, trees=()):
         scene[f"mesh_{i:03d}"] = {"type": "ply", "filename": path, "face_normals": mode != "smooth",
                                   "bsdf": bsdf_ref(key, variant, "" if mode == "smooth" else mode)}
 
-    light = cfg.get("lighting", {})
+    light = view_lighting(cfg, view)
     sky = light.get("sky", {})
     scene["sky"] = {"type": "sunsky", "sun_direction": sun_direction(light, cut),
                     "turbidity": float(sky.get("turbidity", 3.0)),
@@ -452,6 +452,14 @@ def build_scene(model, view, mats: Materials, tmp: str, size, spp, trees=()):
                  "rfilter": {"type": "gaussian"}},
     }
     return scene
+
+
+def view_lighting(cfg, view):
+    """Global lighting with an optional per-view override (``view["lighting"]``), merged one level deep."""
+    base = dict(cfg.get("lighting", {}))
+    for key, val in view.get("lighting", {}).items():
+        base[key] = {**base.get(key, {}), **val} if isinstance(val, dict) else val
+    return base
 
 
 def view_size(view, defaults, quality=1.0):
@@ -551,7 +559,7 @@ def render_views(model, out_dir, names=None, quality=1.0, log=print) -> list[dic
             t1 = time.time()
             img, spp = render_image(scene, spp, (w, h))
             path = os.path.join(out_dir, "renders", f"{view['name']}.png")
-            Image.fromarray(tonemap(img, model.cfg.get("lighting", {}))).save(path)
+            Image.fromarray(tonemap(img, view_lighting(model.cfg, view))).save(path)
             log(f"render {view['name']}: {w}x{h} @ {spp} spp [{mi.variant()}] "
                 f"scene {t1 - t0:.1f}s, render {time.time() - t1:.1f}s -> {path}")
             results.append({"name": view["name"], "title": view.get("title", view["name"]), "path": path})

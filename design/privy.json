@@ -3,54 +3,162 @@
   "project": {
     "name": "Skid-Mounted Pit Privy",
     "subtitle": "Relocatable outhouse over a 30\" HDPE pit, with covered deck",
-    "site": "",
+    "site": "Wooded lot, NC Piedmont (loblolly pine / small oak), red clay subsoil",
     "owner": "",
     "designer": "",
     "date": "2026-09-28",
     "revision": "A",
     "sheet_prefix": "PV"
   },
-
   "loads": {
-    "ground_snow_psf": 30,
+    "ground_snow_psf": 15,
     "roof_dead_psf": 6,
     "floor_live_psf": 40,
     "floor_dead_psf": 8,
     "deck_live_psf": 40,
     "deck_dead_psf": 8,
     "occupant_point_lb": 300,
-    "note": "Screening values only. Confirm ground snow and wind for the actual site."
+    "note": "NC Piedmont: ASCE 7-16 ground snow about 10-15 psf (15 used); Vult about 115 mph. Screening values only."
   },
-
   "stock": {
-    "skid":          {"nominal": "4x6",  "species": "SYP #2", "treatment": "PT UC4B ground contact", "material": "treated_lumber", "lengths": [96, 120, 144, 168, 192]},
-    "floor_rim":     {"nominal": "2x6",  "species": "SYP #2", "treatment": "PT UC4A ground contact", "material": "treated_lumber"},
-    "floor_joist":   {"nominal": "2x6",  "species": "SYP #2", "treatment": "PT UC4A ground contact", "material": "treated_lumber"},
-    "deck_rim":      {"nominal": "2x4",  "species": "SYP #2", "treatment": "PT UC4A ground contact", "material": "treated_lumber"},
-    "deck_joist":    {"nominal": "2x4",  "species": "SYP #2", "treatment": "PT UC4A ground contact", "material": "treated_lumber"},
-    "sill_plate":    {"nominal": "2x4",  "species": "SYP #2", "treatment": "PT UC4A", "material": "treated_lumber"},
-    "stud":          {"nominal": "2x4",  "species": "SPF #2", "material": "framing_lumber", "lengths": [92.625, 96, 104.625, 120]},
-    "plate":         {"nominal": "2x4",  "species": "SPF #2", "material": "framing_lumber"},
-    "blocking":      {"nominal": "2x4",  "species": "SPF #2", "material": "framing_lumber"},
-    "header":        {"nominal": "2x6",  "species": "SPF #2", "material": "framing_lumber"},
-    "bench_header":  {"nominal": "4x6",  "species": "SYP #2", "treatment": "PT UC4A", "material": "treated_lumber"},
-    "bench_framing": {"nominal": "2x4",  "species": "SPF #2", "material": "framing_lumber"},
-    "beam":          {"nominal": "4x6",  "species": "DF-L #2", "material": "framing_lumber"},
-    "post":          {"nominal": "4x4",  "species": "SYP #2", "treatment": "PT UC4B ground contact", "material": "treated_lumber"},
-    "knee_brace":    {"nominal": "4x4",  "species": "SYP #2", "treatment": "PT UC4A", "material": "treated_lumber"},
-    "rafter":        {"nominal": "2x6",  "species": "SPF #2", "material": "framing_lumber"},
-    "purlin":        {"nominal": "2x4",  "species": "SPF #2", "material": "framing_lumber"},
-    "siding_board":  {"nominal": "1x10", "surfacing": "rough", "actual": [1.0, 9.5], "species": "Eastern white pine, air dried", "material": "rough_siding"},
-    "batten":        {"nominal": "1x3",  "surfacing": "rough", "actual": [1.0, 2.5],  "species": "Eastern white pine, air dried", "material": "rough_siding"},
-    "trim":          {"nominal": "1x4",  "surfacing": "rough", "actual": [1.0, 3.5],  "species": "Eastern white pine, air dried", "material": "rough_trim"},
-    "fascia":        {"nominal": "1x6",  "surfacing": "rough", "actual": [1.0, 5.5],  "species": "Eastern white pine, air dried", "material": "rough_trim"},
-    "door_brace":    {"nominal": "1x6",  "surfacing": "rough", "actual": [1.0, 5.5],  "species": "Eastern white pine, air dried", "material": "rough_trim"},
-    "decking":       {"nominal": "5/4x6", "actual": [1.0, 5.5], "species": "SYP", "treatment": "PT UC4A", "material": "decking"},
-    "floor_sheathing": {"sheet": true, "thickness": 0.75, "size": [48, 96], "description": "3/4\" PT plywood, CDX grade", "material": "treated_plywood"},
-    "bench_sheathing": {"sheet": true, "thickness": 0.75, "size": [48, 96], "description": "3/4\" BC plywood, sealed", "material": "bench_plywood"},
-    "flange_sheathing": {"sheet": true, "thickness": 0.75, "size": [48, 96], "description": "3/4\" PT plywood", "material": "treated_plywood"}
+    "skid": {
+      "nominal": "4x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4B ground contact",
+      "material": "treated_lumber",
+      "lengths": [96, 120, 144, 168, 192]
+    },
+    "kick_board": {
+      "nominal": "2x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4A ground contact",
+      "material": "treated_lumber"
+    },
+    "floor_rim": {
+      "nominal": "2x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4A ground contact",
+      "material": "treated_lumber"
+    },
+    "floor_joist": {
+      "nominal": "2x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4A ground contact",
+      "material": "treated_lumber"
+    },
+    "deck_rim": {
+      "nominal": "2x4",
+      "species": "SYP #2",
+      "treatment": "PT UC4A ground contact",
+      "material": "treated_lumber"
+    },
+    "deck_joist": {
+      "nominal": "2x4",
+      "species": "SYP #2",
+      "treatment": "PT UC4A ground contact",
+      "material": "treated_lumber"
+    },
+    "sill_plate": {
+      "nominal": "2x4",
+      "species": "SYP #2",
+      "treatment": "PT UC4A",
+      "material": "treated_lumber"
+    },
+    "stud": {
+      "nominal": "2x4",
+      "species": "SPF #2",
+      "material": "framing_lumber",
+      "lengths": [92.625, 96, 104.625, 120]
+    },
+    "plate": {"nominal": "2x4", "species": "SPF #2", "material": "framing_lumber"},
+    "blocking": {"nominal": "2x4", "species": "SPF #2", "material": "framing_lumber"},
+    "header": {"nominal": "2x6", "species": "SPF #2", "material": "framing_lumber"},
+    "bench_header": {
+      "nominal": "4x6",
+      "species": "SYP #2",
+      "treatment": "PT UC4A",
+      "material": "treated_lumber"
+    },
+    "bench_framing": {"nominal": "2x4", "species": "SPF #2", "material": "framing_lumber"},
+    "beam": {"nominal": "4x6", "species": "DF-L #2", "material": "framing_lumber"},
+    "post": {
+      "nominal": "4x4",
+      "species": "SYP #2",
+      "treatment": "PT UC4B ground contact",
+      "material": "treated_lumber"
+    },
+    "knee_brace": {
+      "nominal": "4x4",
+      "species": "SYP #2",
+      "treatment": "PT UC4A",
+      "material": "treated_lumber"
+    },
+    "rafter": {"nominal": "2x6", "species": "SPF #2", "material": "framing_lumber"},
+    "purlin": {"nominal": "2x4", "species": "SPF #2", "material": "framing_lumber"},
+    "siding_board": {
+      "nominal": "1x10",
+      "surfacing": "rough",
+      "actual": [1.0, 9.5],
+      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "material": "rough_siding"
+    },
+    "batten": {
+      "nominal": "1x3",
+      "surfacing": "rough",
+      "actual": [1.0, 2.5],
+      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "material": "rough_siding"
+    },
+    "trim": {
+      "nominal": "1x4",
+      "surfacing": "rough",
+      "actual": [1.0, 3.5],
+      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "material": "rough_trim"
+    },
+    "fascia": {
+      "nominal": "1x6",
+      "surfacing": "rough",
+      "actual": [1.0, 5.5],
+      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "material": "rough_trim"
+    },
+    "door_brace": {
+      "nominal": "1x6",
+      "surfacing": "rough",
+      "actual": [1.0, 5.5],
+      "species": "Southern yellow pine or yellow-poplar, air-dried",
+      "material": "rough_trim"
+    },
+    "decking": {
+      "nominal": "5/4x6",
+      "actual": [1.0, 5.5],
+      "species": "SYP",
+      "treatment": "PT UC4A",
+      "material": "decking"
+    },
+    "floor_sheathing": {
+      "sheet": true,
+      "thickness": 0.75,
+      "size": [48, 96],
+      "description": "3/4\" PT plywood, CDX grade",
+      "material": "treated_plywood"
+    },
+    "bench_sheathing": {
+      "sheet": true,
+      "thickness": 0.75,
+      "size": [48, 96],
+      "description": "3/4\" BC plywood, sealed",
+      "material": "bench_plywood"
+    },
+    "flange_sheathing": {
+      "sheet": true,
+      "thickness": 0.75,
+      "size": [48, 96],
+      "description": "3/4\" PT plywood",
+      "material": "treated_plywood"
+    }
   },
-
   "pit": {
     "pipe": {
       "description": "30\" dual-wall corrugated HDPE pipe (ADS N-12 or equal), vertical, open bottom",
@@ -81,9 +189,14 @@
       "position": "auto",
       "material": "vent_pipe"
     },
+    "usage": {
+      "persons": 2,
+      "fraction_of_year": 0.25,
+      "accumulation_liters_per_person_year": 60,
+      "freeboard": 18
+    },
     "gravel_bed_depth": 0
   },
-
   "foundation": {
     "skids": {
       "stock": "skid",
@@ -98,16 +211,36 @@
       "tow_hole_from_end": 3
     }
   },
-
   "building": {
     "width": 48,
     "depth": 72,
     "low_bearing_height": 84,
-    "floor": {"joist": "floor_joist", "rim": "floor_rim", "rim_plies": 2, "joist_spacing": 16, "sheathing": "floor_sheathing", "joist_clear_to_pipe": 0.5},
-    "walls": {"stud": "stud", "plate": "plate", "bottom_plate": "sill_plate", "blocking": "blocking", "stud_spacing": 24, "blocking_spacing": 24, "strap_bracing": true},
-    "siding": {"board": "siding_board", "batten": "batten", "gap": 0.5, "lap_over_skid": 1.0, "trim": "trim"}
+    "floor": {
+      "joist": "floor_joist",
+      "rim": "floor_rim",
+      "rim_plies": 2,
+      "joist_spacing": 16,
+      "sheathing": "floor_sheathing",
+      "joist_clear_to_pipe": 0.5
+    },
+    "walls": {
+      "stud": "stud",
+      "plate": "plate",
+      "bottom_plate": "sill_plate",
+      "blocking": "blocking",
+      "stud_spacing": 24,
+      "blocking_spacing": 24,
+      "strap_bracing": true
+    },
+    "siding": {
+      "board": "siding_board",
+      "batten": "batten",
+      "gap": 0.5,
+      "lap_over_skid": 1.0,
+      "min_clearance_to_grade": 6,
+      "trim": "trim"
+    }
   },
-
   "bench": {
     "height": 17,
     "top": "bench_sheathing",
@@ -116,18 +249,25 @@
     "front_panel": "bench_sheathing",
     "front_panel_clearance_to_pipe": 1.0,
     "hole": {"length": 11.5, "width": 9.0, "setback": 11.5},
-    "seat": {"length": 18.5, "width": 14.25, "opening_length": 11.25, "opening_width": 8.75, "thickness": 1.25, "lid": true, "material": "seat"},
+    "seat": {
+      "length": 18.5,
+      "width": 14.25,
+      "opening_length": 11.25,
+      "opening_width": 8.75,
+      "thickness": 1.25,
+      "lid": true,
+      "material": "seat"
+    },
     "joist_clear_to_hole": 2.0
   },
-
   "removable_panel": {
     "head_lap": 2,
     "bottom_above_grade": 0.75,
     "rail": "trim",
     "fasteners": "(10) 1/4\" x 3\" galv. hex lag screws w/ fender washers",
-    "handles": 2
+    "handles": 2,
+    "kick_board": "kick_board"
   },
-
   "door": {
     "rough_opening_width": 27,
     "rough_opening_height": 76,
@@ -139,7 +279,6 @@
     "moon_cutout": true,
     "hardware": "(3) 8\" black strap hinges, thumb latch outside, hook & eye inside"
   },
-
   "window": {
     "wall": "right",
     "unit_width": 18,
@@ -152,7 +291,6 @@
     "frame_material": "window_frame",
     "glass_material": "glass"
   },
-
   "roof": {
     "pitch": 3,
     "rafter": "rafter",
@@ -177,7 +315,6 @@
       "material": "galvanized"
     }
   },
-
   "deck": {
     "depth": 72,
     "rim": "deck_rim",
@@ -189,156 +326,393 @@
     "post": "post",
     "knee_brace": {"stock": "knee_brace", "leg": 24}
   },
-
   "materials": {
     "treated_lumber": {
       "description": "Pressure-treated southern pine, lightly weathered",
-      "base_color": "#a39271", "roughness": 0.82, "specular": 0.3,
-      "texture": {"type": "wood", "grain_color": "#7b6b4c", "tile": [72, 9], "rings": 7, "contrast": 0.35, "seed": 11},
+      "base_color": "#a39271",
+      "roughness": 0.82,
+      "specular": 0.3,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#7b6b4c",
+        "tile": [72, 9],
+        "rings": 12,
+        "contrast": 0.262,
+        "seed": 11
+      },
       "variation": 0.07,
       "drawing": {"fill": "#ffffff", "cut": "wood"}
     },
     "framing_lumber": {
       "description": "Kiln-dried SPF / DF framing lumber",
-      "base_color": "#d8bd8a", "roughness": 0.7, "specular": 0.35,
-      "texture": {"type": "wood", "grain_color": "#b8955f", "tile": [72, 7], "rings": 6, "contrast": 0.3, "seed": 5},
+      "base_color": "#d8bd8a",
+      "roughness": 0.7,
+      "specular": 0.35,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#b8955f",
+        "tile": [72, 7],
+        "rings": 11,
+        "contrast": 0.225,
+        "seed": 5
+      },
       "variation": 0.06,
       "drawing": {"fill": "#ffffff", "cut": "wood"}
     },
     "rough_siding": {
-      "description": "Rough-sawn white pine, air-dried, bandsaw finish, unfinished",
-      "base_color": "#8f7153", "roughness": 0.95, "specular": 0.15,
-      "texture": {"type": "wood", "grain_color": "#5f4630", "tile": [96, 12], "rings": 9, "contrast": 0.45, "saw_marks": 0.35, "seed": 3},
+      "description": "Rough-sawn southern yellow pine or yellow-poplar, air-dried, unfinished",
+      "base_color": "#8c7458",
+      "roughness": 0.95,
+      "specular": 0.15,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#6d573f",
+        "tile": [96, 12],
+        "rings": 16,
+        "contrast": 0.22,
+        "saw_marks": 0.3,
+        "seed": 3
+      },
       "variation": 0.1,
       "drawing": {"fill": "#ffffff", "cut": "board"}
     },
     "rough_trim": {
-      "description": "Rough-sawn white pine trim",
-      "base_color": "#7d5f43", "roughness": 0.95, "specular": 0.15,
-      "texture": {"type": "wood", "grain_color": "#533b26", "tile": [96, 8], "rings": 8, "contrast": 0.45, "saw_marks": 0.3, "seed": 8},
+      "description": "Rough-sawn pine trim",
+      "base_color": "#7e6750",
+      "roughness": 0.95,
+      "specular": 0.15,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#5f4b37",
+        "tile": [96, 8],
+        "rings": 14,
+        "contrast": 0.24,
+        "saw_marks": 0.3,
+        "seed": 8
+      },
       "variation": 0.08,
       "drawing": {"fill": "#ffffff", "cut": "board"}
     },
     "decking": {
       "description": "PT 5/4 deck boards",
-      "base_color": "#98875f", "roughness": 0.85, "specular": 0.25,
-      "texture": {"type": "wood", "grain_color": "#72633f", "tile": [96, 6], "rings": 6, "contrast": 0.35, "seed": 21},
+      "base_color": "#98875f",
+      "roughness": 0.85,
+      "specular": 0.25,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#72633f",
+        "tile": [96, 6],
+        "rings": 11,
+        "contrast": 0.262,
+        "seed": 21
+      },
       "variation": 0.08,
       "drawing": {"fill": "#ffffff", "cut": "board"}
     },
     "treated_plywood": {
       "description": "PT plywood",
-      "base_color": "#a08d63", "roughness": 0.85, "specular": 0.25,
-      "texture": {"type": "wood", "grain_color": "#7f6c47", "tile": [48, 24], "rings": 3, "contrast": 0.3, "seed": 31},
+      "base_color": "#a08d63",
+      "roughness": 0.85,
+      "specular": 0.25,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#7f6c47",
+        "tile": [48, 24],
+        "rings": 3,
+        "contrast": 0.3,
+        "seed": 31
+      },
       "drawing": {"fill": "#ffffff", "cut": "plywood"}
     },
     "bench_plywood": {
       "description": "BC plywood, two coats exterior polyurethane",
-      "base_color": "#c79e68", "roughness": 0.35, "specular": 0.5,
-      "texture": {"type": "wood", "grain_color": "#a57c48", "tile": [48, 24], "rings": 3, "contrast": 0.3, "seed": 41},
+      "base_color": "#c79e68",
+      "roughness": 0.35,
+      "specular": 0.5,
+      "texture": {
+        "type": "wood",
+        "grain_color": "#a57c48",
+        "tile": [48, 24],
+        "rings": 3,
+        "contrast": 0.3,
+        "seed": 41
+      },
       "drawing": {"fill": "#ffffff", "cut": "plywood"}
     },
     "galvanized": {
       "description": "Galvanized corrugated steel",
-      "base_color": "#b4b9be", "metallic": 1.0, "roughness": 0.3, "two_sided": true,
+      "base_color": "#b4b9be",
+      "metallic": 1.0,
+      "roughness": 0.3,
+      "two_sided": true,
       "texture": {"type": "noise", "scale": 10, "contrast": 0.08, "seed": 2},
       "drawing": {"fill": "#f2f2f2", "cut": "steel"}
     },
     "hdpe": {
       "description": "Black HDPE corrugated pipe",
-      "base_color": "#1b1b1c", "roughness": 0.45, "specular": 0.45,
+      "base_color": "#1b1b1c",
+      "roughness": 0.45,
+      "specular": 0.45,
       "drawing": {"fill": "#ffffff", "cut": "hdpe"}
     },
     "vent_pipe": {
       "description": "Black PVC",
-      "base_color": "#141414", "roughness": 0.35, "specular": 0.5,
+      "base_color": "#141414",
+      "roughness": 0.35,
+      "specular": 0.5,
       "drawing": {"fill": "#ffffff", "cut": "hdpe"}
     },
     "epdm": {
       "description": "EPDM rubber",
-      "base_color": "#202020", "roughness": 0.8, "specular": 0.2,
+      "base_color": "#202020",
+      "roughness": 0.8,
+      "specular": 0.2,
       "drawing": {"fill": "#ffffff", "cut": "solid"}
     },
     "steel": {
       "description": "Galvanized / black steel hardware",
-      "base_color": "#3a3b3d", "metallic": 1.0, "roughness": 0.45,
+      "base_color": "#3a3b3d",
+      "metallic": 1.0,
+      "roughness": 0.45,
       "drawing": {"fill": "#ffffff", "cut": "steel"}
     },
     "window_frame": {
       "description": "Window frame and sash, white",
-      "base_color": "#ecebe6", "roughness": 0.45, "specular": 0.4,
+      "base_color": "#ecebe6",
+      "roughness": 0.45,
+      "specular": 0.4,
       "drawing": {"fill": "#ffffff", "cut": "board"}
     },
     "glass": {
-      "type": "glass", "ior": 1.5, "tint": "#f3f7f6",
+      "type": "glass",
+      "ior": 1.5,
+      "tint": "#f3f7f6",
       "drawing": {"fill": "#eef4f7", "cut": "glass"}
     },
     "seat": {
       "description": "Toilet seat, molded wood / plastic, white",
-      "base_color": "#f0eee8", "roughness": 0.3, "specular": 0.5,
+      "base_color": "#f0eee8",
+      "roughness": 0.3,
+      "specular": 0.5,
       "drawing": {"fill": "#ffffff", "cut": "solid"}
     },
     "void": {
       "description": "Opening (crescent cut-out)",
-      "base_color": "#050505", "roughness": 1.0, "specular": 0.0,
+      "base_color": "#050505",
+      "roughness": 1.0,
+      "specular": 0.0,
       "drawing": {"fill": "#333333", "cut": "solid"}
     },
     "soil": {
-      "description": "Level compacted dirt pad",
-      "base_color": "#7a6450", "roughness": 1.0, "specular": 0.1,
-      "texture": {"type": "soil", "tile": [60, 60], "contrast": 0.35, "seed": 4},
+      "description": "Packed brown dirt pad (slight red-clay cast), ~50% covered by oak leaves and pine straw",
+      "base_color": "#5e4a36",
+      "roughness": 1.0,
+      "specular": 0.1,
+      "texture": {
+        "type": "litter",
+        "tile": [48, 48],
+        "dirt_color": "#5e4a36",
+        "leaf_colors": ["#6f5436", "#86704c", "#5a4631", "#9a8360", "#6b5f48"],
+        "needle_color": "#76553a",
+        "contrast": 0.28,
+        "leaf_density": 0.4,
+        "needle_density": 0.45,
+        "seed": 4
+      },
+      "side_texture": {
+        "type": "soil",
+        "tile": [60, 60],
+        "base_color": "#7d5238",
+        "contrast": 0.3,
+        "seed": 5
+      },
       "drawing": {"fill": "#ffffff", "cut": "earth"}
     },
-    "grass": {
-      "description": "Surrounding grass",
-      "base_color": "#56663a", "roughness": 1.0, "specular": 0.05,
-      "texture": {"type": "noise", "scale": 30, "contrast": 0.25, "seed": 9},
+    "forest_floor": {
+      "description": "Woodland floor: dense pine straw and brown oak leaves, some red clay showing",
+      "base_color": "#6b5238",
+      "roughness": 1.0,
+      "specular": 0.1,
+      "texture": {
+        "type": "litter",
+        "tile": [96, 96],
+        "dirt_color": "#4a3a2a",
+        "leaf_colors": [
+          "#6f5436",
+          "#86704c",
+          "#5a4631",
+          "#9a8360",
+          "#6b5f48"
+        ],
+        "needle_color": "#76553a",
+        "contrast": 0.28,
+        "leaf_density": 1.3,
+        "needle_density": 1.3,
+        "seed": 6
+      },
+      "side_texture": {
+        "type": "soil",
+        "tile": [60, 60],
+        "base_color": "#7d5238",
+        "contrast": 0.3,
+        "seed": 5
+      },
       "drawing": {"fill": "#ffffff", "cut": "earth"}
+    },
+    "pine_bark": {
+      "description": "Loblolly pine bark: platy, reddish-brown, dark fissures",
+      "base_color": "#5b4535",
+      "roughness": 0.95,
+      "specular": 0.2,
+      "variation": 0.08,
+      "texture": {
+        "type": "bark",
+        "fissure_color": "#2a1f18",
+        "plate": [7, 3.5],
+        "tile": [48, 24],
+        "contrast": 0.4,
+        "seed": 12
+      },
+      "drawing": {"fill": "#ffffff", "cut": "wood"}
+    },
+    "oak_bark": {
+      "description": "Post / white oak bark: grey, furrowed",
+      "base_color": "#6a655c",
+      "roughness": 0.95,
+      "specular": 0.2,
+      "variation": 0.08,
+      "texture": {
+        "type": "bark",
+        "fissure_color": "#34302b",
+        "plate": [14, 1.6],
+        "tile": [48, 16],
+        "contrast": 0.35,
+        "seed": 13
+      },
+      "drawing": {"fill": "#ffffff", "cut": "wood"}
+    },
+    "pine_needles": {
+      "description": "Loblolly pine foliage (needle-cluster blobs; texture = per-cluster shade variation)",
+      "base_color": "#3f5a2c",
+      "roughness": 0.9,
+      "specular": 0.3,
+      "variation": 0.12,
+      "texture": {"type": "noise", "scale": 8, "contrast": 0.3, "seed": 3},
+      "drawing": {"fill": "#ffffff", "cut": "wood"}
+    },
+    "oak_leaves": {
+      "description": "Oak foliage (leaf-cluster blobs; texture = per-cluster shade variation)",
+      "base_color": "#4a6329",
+      "roughness": 0.9,
+      "specular": 0.3,
+      "variation": 0.18,
+      "texture": {"type": "noise", "scale": 8, "contrast": 0.4, "seed": 4},
+      "drawing": {"fill": "#ffffff", "cut": "wood"}
     }
   },
-
   "lighting": {
     "sun": {"azimuth_deg": 55, "elevation_deg": 38, "scale": 1.0},
     "sky": {"model": "sunsky", "turbidity": 3.0, "ground_albedo": 0.25, "scale": 1.0},
     "exposure_ev": 0.0,
     "tonemap": "aces",
-    "note": "Azimuths are measured in plan from the model +x axis (toward the deck) counter-clockwise toward +y (the high / window side)."
+    "note": "Azimuths are measured in plan from the model +x axis (toward the deck) counter-clockwise toward +y (the high / window side). A view may override lighting (see renders.views[].lighting)."
   },
-
   "renders": {
-    "defaults": {"width": 1800, "height": 1200, "samples": 160, "max_depth": 8, "fov_deg": 36},
+    "defaults": {"width": 1500, "height": 1000, "samples": 128, "max_depth": 8, "fov_deg": 36},
     "environment": {
-      "dirt_pad": {"margin": 60, "material": "soil"},
-      "surround": {"size": 6000, "material": "grass"},
-      "ground_depth": 60
+      "dirt_pad": {"margin": 48, "material": "soil"},
+      "surround": {"size": 6000, "material": "forest_floor"},
+      "ground_depth": 60,
+      "trees": {
+        "seed": 7,
+        "clear_radius": 150,
+        "outer_radius": 1100,
+        "camera_corridor": 70,
+        "species": [
+          {
+            "name": "loblolly pine",
+            "count": 16,
+            "height": [600, 960],
+            "trunk_diameter": [9, 18],
+            "form": "pine",
+            "crown_fraction": 0.3,
+            "bark_material": "pine_bark",
+            "foliage_material": "pine_needles"
+          },
+          {
+            "name": "small oak (post / white oak)",
+            "count": 12,
+            "height": [180, 360],
+            "trunk_diameter": [4, 9],
+            "form": "oak",
+            "crown_fraction": 0.65,
+            "bark_material": "oak_bark",
+            "foliage_material": "oak_leaves"
+          }
+        ],
+        "understory": {
+          "count": 40,
+          "height": [24, 72],
+          "foliage_material": "oak_leaves"
+        },
+        "backdrop": {"count": 70, "outer_radius": 2600}
+      }
     },
     "views": [
-      {"name": "hero", "title": "Deck and window side",
-       "camera": {"orbit": {"azimuth_deg": 38, "elevation_deg": 12, "distance_scale": 1.12}, "target_offset": [0, 0, -6]}},
-      {"name": "rear", "title": "Back with removable panel off (pipe and flange visible)",
-       "camera": {"orbit": {"azimuth_deg": 212, "elevation_deg": 10, "distance_scale": 1.05}},
-       "hide_tags": ["removable_panel"]},
-      {"name": "cutaway", "title": "Cutaway through the pit centerline",
-       "camera": {"orbit": {"azimuth_deg": -90, "elevation_deg": 6, "distance_scale": 1.0}, "target_offset": [0, 0, -20]},
-       "cutaway": {"axis": "y", "value": "pipe_center", "keep": "high"}}
+      {
+        "name": "hero",
+        "title": "Deck and window side",
+        "camera": {
+          "orbit": {"azimuth_deg": 38, "elevation_deg": 12, "distance_scale": 1.12},
+          "target_offset": [0, 0, -6]
+        }
+      },
+      {
+        "name": "rear",
+        "title": "Back with the removable panel off: pipe, flange and bench cavity (morning sun)",
+        "camera": {"orbit": {"azimuth_deg": 212, "elevation_deg": 10, "distance_scale": 1.05}},
+        "hide_tags": ["removable_panel"],
+        "lighting": {"sun": {"azimuth_deg": 235, "elevation_deg": 42}}
+      },
+      {
+        "name": "cutaway",
+        "title": "Cutaway through the pit centerline",
+        "camera": {
+          "orbit": {"azimuth_deg": -90, "elevation_deg": 5, "distance_scale": 1.12},
+          "target_offset": [0, 0, -6]
+        },
+        "cutaway": {"axis": "y", "value": "pipe_center", "keep": "high"}
+      }
     ]
   },
-
   "drawings": {
     "sheet": {"size": [17, 11], "margin": 0.4, "title_block_width": 2.3},
     "theme": "white",
     "font": "Liberation Sans, DejaVu Sans, Arial, Helvetica, sans-serif",
     "plan_cut_height": 60,
-    "scales": ["3\"=1'-0\"", "1-1/2\"=1'-0\"", "1\"=1'-0\"", "3/4\"=1'-0\"", "1/2\"=1'-0\"", "3/8\"=1'-0\"", "1/4\"=1'-0\"", "3/16\"=1'-0\"", "1/8\"=1'-0\""],
+    "scales": [
+      "3\"=1'-0\"",
+      "1-1/2\"=1'-0\"",
+      "1\"=1'-0\"",
+      "3/4\"=1'-0\"",
+      "1/2\"=1'-0\"",
+      "3/8\"=1'-0\"",
+      "1/4\"=1'-0\"",
+      "3/16\"=1'-0\"",
+      "1/8\"=1'-0\""
+    ],
     "general_notes": [
       "All dimensions are to framing unless noted. Rough-sawn boards are full dimension; verify actual sizes delivered by the mill and update the stock table before cutting.",
       "All lumber within 6\" of grade, and all skids, rims, joists, posts and bottom plates: pressure treated. Skids UC4B (ground contact).",
       "Fasteners in contact with treated lumber: hot-dip galvanized (ASTM A153) or stainless. Siding: 8d ring-shank HDG, battens: 10d ring-shank HDG nailed through the gap only, so boards can move.",
       "Board-and-batten boards are nailed to horizontal blocking at 24\" max. and to plates. Leave a 1/2\" gap between boards for shrinkage of air-dried lumber.",
-      "Locate the pit at least 50' (verify local code; often 100') from any well, spring, stream or lake, and with 2'+ of unsaturated soil between the pit bottom and the seasonal high water table. Confirm with the local health authority.",
+      "North Carolina: privies fall under the state on-site wastewater rules administered by the county Environmental Health office. Confirm the permit, the setbacks (commonly 100' from a private well, plus streams and property lines) and the seasonal high water table before digging.",
+      "NC Piedmont red clay drains slowly, so the pit works largely as a storage vault. Add a scoop of sawdust, wood ash or dry leaf litter after each use, and keep roof and surface water away from the pit.",
+      "Subterranean termites are active throughout the Piedmont. Keep untreated wood at least 6\" above grade (the siding line is set by building.siding.min_clearance_to_grade), use UC4B for skids and posts, and inspect the skids every year.",
+      "Wooded site: keep out from under dead or leaning trees, cut roots cleanly when augering the pit, and leave the pad crowned so leaf-litter runoff drains away.",
       "The pipe is set plumb and level-topped, backfilled with compacted native soil in 6\" lifts. The pit has an open bottom; do not bed it in concrete.",
       "Relocation: remove the back panel, drag the sled from the skid ends (tow holes provided), insert the flange after positioning. See sheet A-502.",
-      "Screening structural checks are shown on A-601. This is not a stamped engineered design."
+      "Screening structural checks are on A-602; the cut list and purchase list are on A-601. This is not a stamped engineered design."
     ]
   }
 }

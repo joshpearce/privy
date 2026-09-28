@@ -15,6 +15,15 @@ design/privy.json  ──►  privy.model  ──►  drawing/ (SVG sheets) ─�
                                     └──►  checks, BOM (cut list, purchase list, hardware)
 ```
 
+![Deck and window side](docs/renders/hero.jpg)
+
+The latest drawing set is in [`docs/privy.pdf`](docs/privy.pdf) (17 sheets, 11x17), with the cut list in
+[`docs/cut_list.csv`](docs/cut_list.csv).
+
+| Back, panel removed | Cutaway through the pit |
+|---|---|
+| ![rear](docs/renders/rear.jpg) | ![cutaway](docs/renders/cutaway.jpg) |
+
 ## The design
 
 | | |
@@ -35,7 +44,7 @@ design/privy.json  ──►  privy.model  ──►  drawing/ (SVG sheets) ─�
 pip install -r requirements.txt           # numpy, cairosvg (needs libcairo), pypdf, pillow, mitsuba, jsonschema
 python -m privy build design/privy.json -o build
 python -m privy build --no-render         # drawings only (reuses existing renders if present), ~10 s
-python -m privy build --quality 0.35      # quick draft renders
+python -m privy build --quality 0.35      # quick draft renders (~1 min; full quality is ~2-3 min per view on 4 cores)
 python -m privy build --only A-101 A-301  # just some sheets
 python -m privy build --strict            # exit 1 if a design check fails
 ```
@@ -57,9 +66,10 @@ the high side, and z points up with z = 0 at grade.
 | `bench`, `removable_panel`, `door`, `window` | heights, hole setback, seat, rough openings, hardware text |
 | `roof` | pitch, overhangs, rafter/purlin spacing, roofing profile |
 | `deck` | depth, joists, decking, posts, knee braces |
-| `materials` | per material: base color, roughness, metallic, specular, procedural texture, per-part variation, drawing fill and section hatch |
-| `lighting` | sun azimuth/elevation (plan angle from +x toward +y), sky turbidity, exposure, tone map |
-| `renders` | environment (dirt pad, surrounding ground, trees) and camera views (orbit or absolute; optional `hide_tags` and `cutaway`) |
+| `materials` | per material: base color, roughness, metallic, specular, procedural texture (`wood`, `noise`, `soil`, `litter`, `bark`), optional `side_texture` for non-upward faces, per-part `variation`, and the drawing fill and section hatch |
+| `lighting` | sun azimuth/elevation (plan angle from +x toward +y), sky turbidity and albedo, exposure, tone map |
+| `renders.environment` | dirt pad, surrounding forest floor, trees (species with count, height, trunk diameter, form `pine`/`oak`, bark and foliage materials), understory shrubs, backdrop woods. Placement is seeded and keeps a clear corridor to every camera |
+| `renders.views` | cameras (orbit or absolute), optional `hide_tags` (e.g. `removable_panel`), `cutaway` plane, and a per-view `lighting` override |
 | `drawings` | sheet size, theme (`white` / `blueprint`), plan cut height, allowed scales, general notes |
 
 The schema is in `schema/privy.schema.json` and is validated on every build. Derived geometry is computed, not
@@ -79,7 +89,7 @@ sloped plate.
 | `privy/bom.py` | cut list, first-fit-decreasing purchase list, sheet goods, hardware |
 | `privy/drawing/view.py` | orthographic projection, section caps, and painter's ordering: faces are ordered pairwise by depth tests and then topologically sorted |
 | `privy/drawing/sheets.py` | sheet layouts, keynotes, dimensions, title block |
-| `privy/render/` | Mitsuba scene, procedural textures, trees |
+| `privy/render/` | Mitsuba 3 scene assembly, procedural textures, NC Piedmont trees (loblolly pine, small oaks) |
 | `privy/pdf.py` | SVG to PDF |
 
 The structural rows are screening calculations: simplified NDS allowable stress, No. 2 lumber, snow per ASCE 7 for an
